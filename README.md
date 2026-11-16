@@ -13,7 +13,7 @@ a portable profile file.
 日本語: ボタンの少ないコントローラ（Quest 3 の Touch コントローラ等）のための
 「組み合わせ設定スタジオ」です。同時押し・長押し・二度押し・順番押しに
 キー入力やマクロを割り当て、実機入力でその場で発火を確認できます。
-設定は端末内だけに保存され、JSON で持ち運べます。
+設定は端末内だけに保存され、JSON や共有リンク（URL のフラグメントに埋め込むため、サーバーへは送られません）で持ち運べます。
 
 ![Hands main view](docs/screenshot-main.png)
 
@@ -46,7 +46,9 @@ requests at all.
   can likewise be captured from your physical keyboard.
 - **Profiles** — create, duplicate, rename and switch profiles. Stored in
   the browser on this device only; export/import as JSON to move them
-  between machines.
+  between machines, or share one as a link: the profile is encoded in the
+  link's URL fragment, which is never sent to a server, and opening the
+  link imports it as a new profile.
 - **No hardware?** Eight keyboard keys (A S D F J K L ;) act as test
   buttons, and the built-in starter profile demonstrates every trigger
   kind with them. You can evaluate the whole studio before connecting

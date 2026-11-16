@@ -111,6 +111,35 @@ app.whenReady().then(async () => {
     /* --- export shape (core, in page context) --- */
     check('export JSON is a Hands file', await run('HC.exportProfile(JSON.parse(localStorage.getItem("hands.studio.v1")).profiles[0]).indexOf("\\"app\\": \\"hands\\"") >= 0'));
 
+    /* --- share link: button produces a link; opening it imports the profile --- */
+    check('share button exists', await run('!!document.getElementById("shareBtn")'));
+    await run('window.__sharedUrl = ""; Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: function (s) { window.__sharedUrl = s; return Promise.resolve(); } } })');
+    await run('document.getElementById("shareBtn").click()');
+    await sleep(80);
+    check('share button copies a #s= link', await run('window.__sharedUrl.indexOf("#s=") > 0'));
+    check('share success is reported', await run('document.getElementById("profileErr").textContent.length > 0'));
+    const profilesBefore = await run('JSON.parse(localStorage.getItem("hands.studio.v1")).profiles.length');
+    const sharedUrl = await run('window.__sharedUrl');
+    await win.loadURL(sharedUrl.split('#')[0] + '?fresh=1'); /* a bare hash change would not reload the page */
+    await win.loadURL(sharedUrl);
+    await sleep(500);
+    check('opening the link imports one profile', await run('JSON.parse(localStorage.getItem("hands.studio.v1")).profiles.length') === profilesBefore + 1);
+    check('imported profile becomes active', await run('(function () { var d = JSON.parse(localStorage.getItem("hands.studio.v1")); return d.activeId === d.profiles[d.profiles.length - 1].id; })()'));
+    check('imported profile keeps its rules', await run('document.querySelectorAll("#ruleList .rule-card").length === 6'));
+    check('imported message is shown', await run('document.getElementById("profileErr").textContent.length > 0'));
+    check('fragment is removed after import', await run('location.hash.indexOf("s=") === -1'));
+
+    /* --- broken share link: a reason is shown and nothing is imported --- */
+    const profilesNow = await run('JSON.parse(localStorage.getItem("hands.studio.v1")).profiles.length');
+    const fileUrl = require('url').pathToFileURL(path.join(root, 'index.html')).href;
+    await win.loadURL(fileUrl + '?fresh=2');
+    await win.loadURL(fileUrl + '#s=!!!broken!!!');
+    await sleep(500);
+    check('broken link shows why it failed', await run('document.getElementById("profileErr").textContent.indexOf("読み込めませんでした") >= 0'));
+    check('broken link imports nothing', await run('JSON.parse(localStorage.getItem("hands.studio.v1")).profiles.length') === profilesNow);
+    await win.loadURL(fileUrl);
+    await sleep(500);
+
     /* --- language switch --- */
     await run('var l = document.getElementById("langSel"); l.value = "en"; l.dispatchEvent(new Event("change", {bubbles:true}))');
     await sleep(50);

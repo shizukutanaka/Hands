@@ -241,6 +241,60 @@ eq(HC.TRIGGER_KINDS, ['press', 'chord', 'longpress', 'double', 'sequence'], 'tri
   eq(bare.profile.rules.length, 1, 'json: bare profile object accepted');
 }
 
+/* ---- share links ---- */
+{
+  const src = {
+    id: 'p-share', name: '共有テスト 🎮', rules: [
+      rule('press', ['A']),
+      rule('chord', ['A', 'B'], { windowMs: 0 }),
+      rule('longpress', ['Grip'], { holdMs: 700 }),
+      rule('double', ['X'], { intervalMs: 300 }),
+      rule('sequence', ['A', 'B', 'A'], { windowMs: 900 }, { kind: 'macro', steps: [{ keys: ['Ctrl', 'S'], delayMs: 50 }, { keys: ['Enter'], delayMs: 150 }] }),
+      { id: 'r-none', name: '', enabled: false, trigger: { kind: 'press', buttons: ['Y'] }, action: { kind: 'none' } }
+    ]
+  };
+  const want = HC.normalizeProfile(src).profile;
+  const enc = HC.encodeShareLink(src);
+  ok(typeof enc.fragment === 'string' && enc.fragment.indexOf('s=') === 0, 'share: fragment starts with s=');
+  ok(!/[+/=]/.test(enc.fragment.slice(2)), 'share: payload is base64url (no +, / or =)');
+  eq(enc.errors, [], 'share: encode has no errors');
+
+  const back = HC.decodeShareLink(enc.fragment);
+  eq(back.errors, [], 'share: round trip has no errors');
+  eq(back.profile, want, 'share: round trip preserves the profile (incl. UTF-8 name)');
+  eq(HC.decodeShareLink('#' + enc.fragment).profile, want, 'share: accepts a bare hash');
+  eq(HC.decodeShareLink('https://example.invalid/hands#' + enc.fragment).profile, want, 'share: accepts a full URL');
+  eq(HC.decodeShareLink('file:///home/user/hands.html#' + enc.fragment).profile, want, 'share: accepts a file URL');
+
+  eq(HC.decodeShareLink(''), null, 'share: empty input is not a share link');
+  eq(HC.decodeShareLink(null), null, 'share: null is not a share link');
+  eq(HC.decodeShareLink('https://example.invalid/hands'), null, 'share: URL without fragment is not a share link');
+  eq(HC.decodeShareLink('#top'), null, 'share: foreign fragment is not a share link');
+
+  const b64 = (s) => Buffer.from(s, 'utf8').toString('base64url');
+  const broken = HC.decodeShareLink('#s=!!!not-base64!!!');
+  eq(broken.profile, null, 'share: invalid characters rejected');
+  ok(broken.errors.length > 0, 'share: invalid characters produce a reason');
+  const truncated = HC.decodeShareLink(enc.fragment.slice(0, enc.fragment.length - 6));
+  eq(truncated.profile, null, 'share: truncated link rejected');
+  ok(truncated.errors.length > 0, 'share: truncated link produces a reason');
+  eq(HC.decodeShareLink('#s=' + b64('this is not json')).profile, null, 'share: non-JSON payload rejected');
+  eq(HC.decodeShareLink('#s=' + b64('{"app":"other","version":1,"profile":{"rules":[]}}')).profile, null, 'share: foreign app rejected');
+  eq(HC.decodeShareLink('#s=' + b64('{"app":"hands","version":99,"profile":{"rules":[]}}')).profile, null, 'share: newer version rejected');
+  const badUtf8 = HC.decodeShareLink('#s=' + Buffer.from([0xff, 0xfe, 0xfd]).toString('base64url'));
+  eq(badUtf8.profile, null, 'share: invalid UTF-8 payload rejected');
+  ok(badUtf8.errors.length > 0, 'share: invalid UTF-8 produces a reason');
+
+  const big = { name: 'Big', rules: [] };
+  for (let i = 0; i < 300; i++) big.rules.push(rule('press', ['B' + i], null, { kind: 'keys', keys: ['K' + i] }));
+  const bigEnc = HC.encodeShareLink(big);
+  eq(bigEnc.fragment, null, 'share: oversized profile is refused, not truncated');
+  ok(bigEnc.errors.length > 0, 'share: oversized profile produces a reason');
+  const longLink = HC.decodeShareLink('#s=' + 'A'.repeat(HC.SHARE_FRAGMENT_MAX_LENGTH));
+  eq(longLink.profile, null, 'share: overlong link rejected');
+  ok(longLink.errors.length > 0, 'share: overlong link produces a reason');
+}
+
 /* ---- presets ---- */
 {
   eq(HC.guessPresetId('Oculus Touch Controller (Right)', 'xr-standard'), 'quest3-r', 'preset: Quest right');

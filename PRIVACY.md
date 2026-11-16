@@ -11,6 +11,13 @@ Hands is local-first software.
   are stored only in your browser's local storage on the device you use.
   Exporting a profile produces a JSON file that you control; Hands never
   sees it leave.
+- **Share links carry the profile in the link itself.** When you create
+  a share link, the profile is encoded in the URL fragment (the part
+  after `#`), which browsers never send to a server — and Hands has no
+  server to send it to. Anyone who has the link can read the profile it
+  carries, so share links only with people you want to have that
+  profile. Opening a share link imports the profile on that device;
+  nothing about it is reported back.
 - **Controller input is read, never recorded.** Gamepad state is polled
   in memory to detect combinations and is not logged or persisted. The
   on-screen output log exists only until you clear it or close the page.

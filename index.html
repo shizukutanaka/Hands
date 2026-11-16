@@ -178,6 +178,7 @@
           <button id="delProfileBtn" class="danger" data-i18n="delProfile">削除</button>
           <button id="exportBtn" data-i18n="export">書き出し (JSON)</button>
           <button id="importBtn" data-i18n="import">読み込み</button>
+          <button id="shareBtn" data-i18n="shareLink">リンクで共有</button>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none">
         </div>
         <div id="ruleList"></div>
@@ -467,6 +468,106 @@
     return HC.normalizeProfile(inner);
   };
 
+  /* ---------------- share links ----------------
+     A profile can also travel as a URL fragment: #s=<base64url of the
+     export envelope JSON>. A fragment is never sent to a server, and this
+     app makes no network requests at all (CSP connect-src 'none'), so a
+     shared profile moves only between the people who exchange the link.
+     The payload is the exact envelope a JSON export produces, so decoding
+     reuses importProfile's validation: a link is untrusted input and any
+     malformed or tampered payload comes back as errors, never as a
+     silently partial profile. Overlong profiles are refused with an
+     error instead of being truncated. */
+  HC.SHARE_FRAGMENT_MAX_LENGTH = 8000; /* length of 's=...' itself */
+
+  function utf8ToBytes(str) {
+    var bytes = [];
+    for (var i = 0; i < str.length; i++) {
+      var cp = str.codePointAt(i);
+      if (cp > 0xFFFF) i++;
+      if (cp < 0x80) bytes.push(cp);
+      else if (cp < 0x800) bytes.push(0xC0 | (cp >> 6), 0x80 | (cp & 63));
+      else if (cp < 0x10000) bytes.push(0xE0 | (cp >> 12), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+      else bytes.push(0xF0 | (cp >> 18), 0x80 | ((cp >> 12) & 63), 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+    }
+    return bytes;
+  }
+  function bytesToUtf8(bytes) {
+    var out = '', i = 0;
+    while (i < bytes.length) {
+      var b = bytes[i], cp, len;
+      if (b < 0x80) { cp = b; len = 1; }
+      else if ((b & 0xE0) === 0xC0) { cp = b & 0x1F; len = 2; }
+      else if ((b & 0xF0) === 0xE0) { cp = b & 0x0F; len = 3; }
+      else if ((b & 0xF8) === 0xF0) { cp = b & 0x07; len = 4; }
+      else throw new Error('invalid text encoding');
+      if (i + len > bytes.length) throw new Error('truncated text encoding');
+      for (var j = 1; j < len; j++) {
+        var c = bytes[i + j];
+        if ((c & 0xC0) !== 0x80) throw new Error('invalid text encoding');
+        cp = (cp << 6) | (c & 63);
+      }
+      if ((len === 2 && cp < 0x80) || (len === 3 && cp < 0x800) || (len === 4 && cp < 0x10000)) {
+        throw new Error('invalid text encoding');
+      }
+      out += String.fromCodePoint(cp);
+      i += len;
+    }
+    return out;
+  }
+  var B64URL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  function bytesToB64Url(bytes) {
+    var out = '';
+    for (var i = 0; i < bytes.length; i += 3) {
+      var n = (bytes[i] << 16) | ((bytes[i + 1] || 0) << 8) | (bytes[i + 2] || 0);
+      out += B64URL_CHARS[(n >> 18) & 63] + B64URL_CHARS[(n >> 12) & 63]
+        + (i + 1 < bytes.length ? B64URL_CHARS[(n >> 6) & 63] : '')
+        + (i + 2 < bytes.length ? B64URL_CHARS[n & 63] : '');
+    }
+    return out;
+  }
+  function b64UrlToBytes(s) {
+    if (!/^[A-Za-z0-9_-]+$/.test(s) || s.length % 4 === 1) throw new Error('invalid link encoding');
+    var bytes = [], acc = 0, bits = 0;
+    for (var i = 0; i < s.length; i++) {
+      acc = (acc << 6) | B64URL_CHARS.indexOf(s[i]); bits += 6;
+      if (bits >= 8) { bits -= 8; bytes.push((acc >> bits) & 0xFF); }
+    }
+    return bytes;
+  }
+
+  /* Returns { fragment, errors }: fragment is 's=...' (without '#'), or
+     null when the profile cannot fit in a link. */
+  HC.encodeShareLink = function (profile) {
+    var n = HC.normalizeProfile(profile);
+    if (!n.profile) return { fragment: null, errors: n.errors };
+    var json = JSON.stringify({ app: 'hands', version: HC.formatVersion, profile: n.profile });
+    var fragment = 's=' + bytesToB64Url(utf8ToBytes(json));
+    if (fragment.length > HC.SHARE_FRAGMENT_MAX_LENGTH) {
+      return { fragment: null, errors: ['share: profile is too large for a link (over ' + HC.SHARE_FRAGMENT_MAX_LENGTH + ' characters); use JSON export instead'] };
+    }
+    return { fragment: fragment, errors: n.errors };
+  };
+
+  /* Accepts a full URL, a '#...' hash or a bare 's=...' fragment.
+     Returns null when the input is not a share link at all; otherwise the
+     same { profile, errors } shape as importProfile, with profile null
+     and a descriptive error when the link is broken or tampered with. */
+  HC.decodeShareLink = function (input) {
+    if (input === null || input === undefined) return null;
+    var s = String(input);
+    var h = s.indexOf('#');
+    if (h >= 0) s = s.slice(h + 1);
+    if (s.indexOf('s=') !== 0) return null;
+    if (s.length > HC.SHARE_FRAGMENT_MAX_LENGTH) {
+      return { profile: null, errors: ['share: link is too long (over ' + HC.SHARE_FRAGMENT_MAX_LENGTH + ' characters)'] };
+    }
+    var json;
+    try { json = bytesToUtf8(b64UrlToBytes(s.slice(2))); }
+    catch (e) { return { profile: null, errors: ['share: ' + e.message] }; }
+    return HC.importProfile(json);
+  };
+
   /* Human-readable one-liners (language-neutral structure; the UI localizes
      the kind words, these are for logs/tests). */
   HC.describeTrigger = function (trigger) {
@@ -697,6 +798,7 @@
       outputNote: 'これは画面内シミュレーションです。他のアプリへキーを送ることはブラウザからはできません（README参照）。',
       rules: '割り当てルール', rulesSub: 'プロファイルはこの端末の中だけに保存されます',
       newProfile: '新規', dupProfile: '複製', delProfile: '削除', export: '書き出し (JSON)', import: '読み込み',
+      shareLink: 'リンクで共有',
       addRule: '＋ ルールを追加', editorTitle: 'ルールを編集', ruleName: '名前',
       triggerKind: 'きっかけ', kindPress: '単押し', kindChord: '同時押し', kindLong: '長押し',
       kindDouble: '二度押し', kindSeq: '順番押し', learn: '実入力で覚える', learning: '入力待ち…（やめる）',
@@ -718,6 +820,8 @@
       errNeedButtons2: 'ボタンを2つ以上選んでください。', errNeedButton1: 'ボタンを1つ選んでください。',
       errNeedKeys: 'キーを指定してください。', errNeedStepKeys: 'マクロの手順にキーが無いものがあります。',
       imported: 'プロファイルを読み込みました。', importFailed: '読み込みに失敗しました: ',
+      shareCopied: '共有リンクをコピーしました。', sharePrompt: '共有リンクです。コピーして使ってください:',
+      shareFailed: '共有リンクを作れませんでした: ', shareLoadFailed: '共有リンクを読み込めませんでした: ',
       logFire: '発火', logMacroStep: 'マクロ手順', profile: 'プロファイル',
       delay: '間隔 (ms)', remove: '削除', capture: 'キー指定', step: '手順'
     },
@@ -732,6 +836,7 @@
       outputNote: 'This is an on-screen simulation. A browser cannot send keys to other apps (see README).',
       rules: 'Binding rules', rulesSub: 'Profiles are stored only on this device',
       newProfile: 'New', dupProfile: 'Duplicate', delProfile: 'Delete', export: 'Export (JSON)', import: 'Import',
+      shareLink: 'Share link',
       addRule: '+ Add rule', editorTitle: 'Edit rule', ruleName: 'Name',
       triggerKind: 'Trigger', kindPress: 'Press', kindChord: 'Chord (simultaneous)', kindLong: 'Long press',
       kindDouble: 'Double press', kindSeq: 'Sequence', learn: 'Learn from real input', learning: 'Listening… (tap to stop)',
@@ -753,6 +858,8 @@
       errNeedButtons2: 'Pick at least 2 buttons.', errNeedButton1: 'Pick a button.',
       errNeedKeys: 'Specify the keys.', errNeedStepKeys: 'A macro step has no keys.',
       imported: 'Profile imported.', importFailed: 'Import failed: ',
+      shareCopied: 'Share link copied.', sharePrompt: 'Here is your share link — copy it:',
+      shareFailed: 'Could not create a share link: ', shareLoadFailed: 'Could not load the shared profile: ',
       logFire: 'FIRED', logMacroStep: 'macro step', profile: 'Profile',
       delay: 'delay (ms)', remove: 'Remove', capture: 'Capture', step: 'Step'
     }
@@ -819,6 +926,26 @@
   function activeProfile() {
     for (var i = 0; i < store.profiles.length; i++) if (store.profiles[i].id === store.activeId) return store.profiles[i];
     return null;
+  }
+  /* Opened via a share link (#s=...): import the carried profile exactly
+     like a JSON file import (added as a new profile and made active), or
+     show why the link could not be read. The fragment is then removed
+     from the address bar: the profile now lives in the store, and leaving
+     the link in place would import a duplicate on every reload. */
+  function consumeShareLink() {
+    if (!location.hash || location.hash.indexOf('#s=') !== 0) return;
+    var res = HC.decodeShareLink(location.hash);
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* fragment stays; harmless */ }
+    if (!res) return;
+    if (res.profile) {
+      res.profile.id = uid('profile');
+      store.profiles.push(res.profile);
+      store.activeId = res.profile.id;
+      saveStore(); rebuildEngine(); renderRules(); closeEditor();
+      $('profileErr').textContent = t('imported');
+    } else {
+      $('profileErr').textContent = t('shareLoadFailed') + res.errors.join(' / ');
+    }
   }
   function rebuildEngine() {
     var p = activeProfile();
@@ -1540,6 +1667,23 @@
       };
       reader.readAsText(file);
     });
+    $('shareBtn').addEventListener('click', function () {
+      var p = activeProfile(); if (!p) return;
+      var enc = HC.encodeShareLink(p);
+      if (!enc.fragment) {
+        $('profileErr').textContent = t('shareFailed') + enc.errors.join(' / ');
+        return;
+      }
+      /* The profile rides in the URL fragment, which browsers never send
+         to a server; the link itself is the only copy that leaves. */
+      var url = location.href.split('#')[0] + '#' + enc.fragment;
+      function copied() { $('profileErr').textContent = t('shareCopied'); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(copied, function () { window.prompt(t('sharePrompt'), url); });
+      } else {
+        window.prompt(t('sharePrompt'), url);
+      }
+    });
 
     $('edName').addEventListener('input', function () { if (editing) editing.name = $('edName').value; });
     $('edKind').addEventListener('change', function () {
@@ -1572,6 +1716,8 @@
         saveStore(); rebuildEngine(); renderRules(); closeEditor();
       });
     });
+
+    consumeShareLink();
 
     requestAnimationFrame(poll);
   }
