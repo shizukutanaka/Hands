@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Hands — Combo Studio for Button-Poor Controllers</title>
+<style>
+  :root {
+    --bg: #101216; --panel: #181b21; --panel2: #1f232c; --line: #2c313c;
+    --text: #e8eaf0; --dim: #9aa3b2; --accent: #ffb454; --accent2: #57c7ff;
+    --ok: #52d273; --bad: #ff6b6b; --btn-on: #ffb454;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+    padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+    position: sticky; top: 0; z-index: 20;
+  }
+  header .logo { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  header .logo span { color: var(--accent); }
+  header .tagline { color: var(--dim); font-size: 12.5px; }
+  header .spacer { flex: 1; }
+  select, input[type="text"], input[type="number"] {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px; font-size: 13.5px;
+  }
+  button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 12px; font-size: 13.5px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #1a1408; border-color: var(--accent); font-weight: 700; }
+  button.danger:hover { border-color: var(--bad); color: var(--bad); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.learn-active { background: var(--bad); color: #fff; border-color: var(--bad); }
+  main { max-width: 1240px; margin: 0 auto; padding: 16px; }
+  .layout { display: grid; grid-template-columns: 400px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } }
+  section.panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 16px;
+  }
+  section.panel h2 { margin: 0 0 10px; font-size: 15.5px; }
+  section.panel h2 .sub { color: var(--dim); font-weight: 400; font-size: 12px; margin-left: 8px; }
+  .hint { color: var(--dim); font-size: 12.5px; }
+  .warn { color: var(--accent); font-size: 12.5px; }
+  /* device monitor */
+  .pad { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: var(--panel2); }
+  .pad .pad-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 8px; }
+  .pad .pad-name { font-weight: 700; font-size: 13.5px; word-break: break-all; }
+  .pad .pad-meta { color: var(--dim); font-size: 12px; }
+  .btn-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btn-cell {
+    min-width: 64px; text-align: center; border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 6px 4px; background: var(--panel); transition: background .05s;
+  }
+  .btn-cell .bi { font-size: 10.5px; color: var(--dim); }
+  .btn-cell .bn { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .btn-cell .bv { height: 3px; background: var(--line); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .btn-cell .bv i { display: block; height: 100%; width: 0%; background: var(--accent2); }
+  .btn-cell.on { background: var(--btn-on); color: #1a1408; }
+  .btn-cell.on .bi { color: #5c4510; }
+  .axes { color: var(--dim); font-size: 12px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  /* rules */
+  .profile-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .profile-bar input[type="text"] { min-width: 140px; }
+  .rule-card {
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+    background: var(--panel2); display: flex; gap: 10px; align-items: flex-start;
+  }
+  .rule-card.flash { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok); }
+  .rule-card .rc-main { flex: 1; min-width: 0; }
+  .rule-card .rc-name { font-weight: 700; }
+  .rule-card .rc-desc { color: var(--dim); font-size: 12.5px; word-break: break-word; }
+  .rule-card .rc-desc b { color: var(--accent2); font-weight: 600; }
+  .rule-card .rc-desc .act { color: var(--accent); font-weight: 600; }
+  .rule-card.off { opacity: .5; }
+  .switch { position: relative; width: 38px; height: 21px; flex: none; margin-top: 2px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .track { position: absolute; inset: 0; background: var(--line); border-radius: 11px; cursor: pointer; }
+  .switch .track:before { content: ""; position: absolute; width: 15px; height: 15px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: left .15s; }
+  .switch input:checked + .track { background: var(--ok); }
+  .switch input:checked + .track:before { left: 20px; }
+  /* editor */
+  #editor { display: none; }
+  #editor.open { display: block; }
+  .form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .form-row label { color: var(--dim); font-size: 12.5px; min-width: 92px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip {
+    display: inline-flex; gap: 6px; align-items: center; background: var(--panel);
+    border: 1px solid var(--accent2); color: var(--text); border-radius: 20px; padding: 3px 6px 3px 10px; font-size: 12.5px;
+  }
+  .chip .ord { color: var(--accent2); font-weight: 700; }
+  .chip button { border: none; background: none; padding: 0 4px; color: var(--dim); font-size: 14px; }
+  .picker { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 10px; }
+  .picker button { font-size: 12px; padding: 4px 8px; }
+  .picker button.picked { border-color: var(--accent2); color: var(--accent2); }
+  .macro-step { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .err { color: var(--bad); font-size: 12.5px; min-height: 1em; }
+  /* output */
+  #flash {
+    border: 1px dashed var(--line); border-radius: 8px; min-height: 64px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 22px; font-weight: 700; color: var(--dim); padding: 10px; margin-bottom: 10px;
+    word-break: break-word;
+  }
+  #flash.hit { color: var(--accent); border-color: var(--accent); }
+  #log {
+    background: #0b0d10; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    height: 220px; overflow-y: auto; font-family: Consolas, "Courier New", monospace; font-size: 12px;
+  }
+  #log .lt { color: var(--dim); }
+  #log .lr { color: var(--accent2); }
+  #log .la { color: var(--accent); }
+  #log .ls { color: var(--dim); }
+  footer { color: var(--dim); font-size: 12.5px; padding: 8px 18px 28px; max-width: 1240px; margin: 0 auto; }
+  footer a { color: var(--accent2); }
+  .kbd { background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-family: Consolas, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">✋ Hands <span>Combo Studio</span></div>
+  <div class="tagline" data-i18n="tagline">ボタンの少ないコントローラに、組み合わせ操作を。</div>
+  <div class="spacer"></div>
+  <label class="hint"><span data-i18n="language">言語</span>
+    <select id="langSel">
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+    </select>
+  </label>
+</header>
+<main>
+  <div class="layout">
+    <div>
+      <section class="panel" id="devicesPanel">
+        <h2><span data-i18n="devices">デバイス</span><span class="sub" data-i18n="devicesSub">Gamepad API で実入力を読みます</span></h2>
+        <div id="padList"></div>
+        <div class="pad" id="kbPad">
+          <div class="pad-head">
+            <span class="pad-name" data-i18n="kbPadName">キーボードテスト</span>
+            <span class="pad-meta" data-i18n="kbPadMeta">ハードウェアが無くても試せます</span>
+          </div>
+          <div class="btn-grid" id="kbGrid"></div>
+          <div class="hint" data-i18n="kbHint">入力欄にフォーカスが無いとき、A S D F J K L ; の8キーがボタンとして働きます。</div>
+        </div>
+        <div class="hint" id="noPadHint" data-i18n="noPad">コントローラが未接続です。コントローラを接続して何かボタンを押すと、ここに表示されます。</div>
+      </section>
+
+      <section class="panel" id="outputPanel">
+        <h2><span data-i18n="output">テスト出力</span><span class="sub" data-i18n="outputSub">発火した割り当てのシミュレーション</span></h2>
+        <div id="flash" data-i18n="flashIdle">割り当てが発火するとここに表示されます</div>
+        <div id="log" aria-live="polite"></div>
+        <div class="form-row" style="margin-top:10px;">
+          <button id="clearLogBtn" data-i18n="clearLog">ログを消す</button>
+          <span class="hint" data-i18n="outputNote">これは画面内シミュレーションです。他のアプリへキーを送ることはブラウザからはできません（README参照）。</span>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <section class="panel" id="rulesPanel">
+        <h2><span data-i18n="rules">割り当てルール</span><span class="sub" data-i18n="rulesSub">プロファイルはこの端末の中だけに保存されます</span></h2>
+        <div class="profile-bar">
+          <select id="profileSel" aria-label="profile"></select>
+          <input type="text" id="profileName" aria-label="profile name">
+          <button id="newProfileBtn" data-i18n="newProfile">新規</button>
+          <button id="dupProfileBtn" data-i18n="dupProfile">複製</button>
+          <button id="delProfileBtn" class="danger" data-i18n="delProfile">削除</button>
+          <button id="exportBtn" data-i18n="export">書き出し (JSON)</button>
+          <button id="importBtn" data-i18n="import">読み込み</button>
+          <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+        </div>
+        <div id="ruleList"></div>
+        <button id="addRuleBtn" class="primary" data-i18n="addRule">＋ ルールを追加</button>
+        <div class="err" id="profileErr"></div>
+      </section>
+
+      <section class="panel" id="editor">
+        <h2><span data-i18n="editorTitle">ルールを編集</span></h2>
+        <div class="form-row">
+          <label data-i18n="ruleName">名前</label>
+          <input type="text" id="edName" style="flex:1;min-width:160px;">
+        </div>
+        <div class="form-row">
+          <label data-i18n="triggerKind">きっかけ</label>
+          <select id="edKind">
+            <option value="press" data-i18n="kindPress">単押し</option>
+            <option value="chord" data-i18n="kindChord">同時押し</option>
+            <option value="longpress" data-i18n="kindLong">長押し</option>
+            <option value="double" data-i18n="kindDouble">二度押し</option>
+            <option value="sequence" data-i18n="kindSeq">順番押し</option>
+          </select>
+          <button id="learnBtn" data-i18n="learn">実入力で覚える</button>
+          <span class="hint" id="learnHint"></span>
+        </div>
+        <div class="form-row">
+          <label data-i18n="triggerButtons">ボタン</label>
+          <div class="chips" id="edButtons"></div>
+        </div>
+        <div class="picker" id="buttonPicker"></div>
+        <div class="form-row" id="rowWindow">
+          <label data-i18n="windowMs">同時とみなす幅 (ms)</label>
+          <input type="number" id="edWindow" min="0" max="60000" step="10">
+          <span class="hint" data-i18n="windowHint">0 = 制限なし（修飾キーのように使う）</span>
+        </div>
+        <div class="form-row" id="rowHold">
+          <label data-i18n="holdMs">長押し時間 (ms)</label>
+          <input type="number" id="edHold" min="10" max="60000" step="50">
+        </div>
+        <div class="form-row" id="rowInterval">
+          <label data-i18n="intervalMs">二度押しの間隔 (ms)</label>
+          <input type="number" id="edInterval" min="10" max="60000" step="50">
+        </div>
+        <div class="form-row" id="rowSeqWindow">
+          <label data-i18n="seqWindowMs">一手ごとの制限時間 (ms)</label>
+          <input type="number" id="edSeqWindow" min="10" max="60000" step="50">
+        </div>
+        <div class="form-row">
+          <label data-i18n="actionKind">動作</label>
+          <select id="edActionKind">
+            <option value="keys" data-i18n="actKeys">キーを押す</option>
+            <option value="macro" data-i18n="actMacro">マクロ（キーの並び）</option>
+            <option value="none" data-i18n="actNone">なし（発火だけ記録）</option>
+          </select>
+        </div>
+        <div id="actionKeysBox">
+          <div class="form-row">
+            <label data-i18n="actionKeys">キー</label>
+            <div class="chips" id="edKeys"></div>
+            <button id="captureKeysBtn" data-i18n="captureKeys">キー入力で指定</button>
+          </div>
+          <div class="picker" id="commonKeys"></div>
+        </div>
+        <div id="actionMacroBox">
+          <div id="macroSteps"></div>
+          <button id="addStepBtn" data-i18n="addStep">＋ 手順を追加</button>
+        </div>
+        <div class="err" id="edErr"></div>
+        <div class="form-row">
+          <button id="saveRuleBtn" class="primary" data-i18n="save">保存</button>
+          <button id="cancelRuleBtn" data-i18n="cancel">キャンセル</button>
+          <button id="deleteRuleBtn" class="danger" data-i18n="delete">このルールを削除</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer>
+  <span data-i18n="footerNote">Hands は設定と判定のためのスタジオです。設定はこの端末の中にだけ保存され、外部へ送信されることはありません。他のアプリへ実際にキーを届けるには将来のネイティブ版が必要です（設計メモ: docs/INJECTION.md）。</span>
+</footer>
+
+<script>
+/* ==== HANDS CORE BEGIN ==== */
+/* Hands core: profile normalization, JSON import/export, device presets and
+   the combo detection engine. Pure and deterministic: the engine never reads
+   a clock; every timestamp arrives with an event or an advanceTo() call.
+   No DOM, no storage, no network. */
+(function (global) {
+  'use strict';
+
+  var HC = { version: '1.0.0', formatVersion: 1 };
+  HC.config = { zeroDep: true, singleFile: true, localFirst: true, zeroTelemetry: true };
+
+  var TRIGGER_KINDS = ['press', 'chord', 'longpress', 'double', 'sequence'];
+  var ACTION_KINDS = ['keys', 'macro', 'none'];
+  HC.TRIGGER_KINDS = TRIGGER_KINDS;
+  HC.ACTION_KINDS = ACTION_KINDS;
+
+  var TIMING_MIN = 10, TIMING_MAX = 60000;
+  var DEFAULTS = { chordWindowMs: 100, holdMs: 500, doubleIntervalMs: 350, sequenceWindowMs: 800, macroDelayMs: 50 };
+  HC.DEFAULTS = DEFAULTS;
+
+  /* ---------------- device presets (button names per Gamepad index) ---------------- */
+  HC.DEVICE_PRESETS = [
+    {
+      id: 'quest3-r', label: 'Meta Quest 3 Touch (Right)', mapping: 'xr-standard',
+      buttons: { 0: 'Trigger', 1: 'Grip', 3: 'Thumbstick Click', 4: 'A', 5: 'B' },
+      axes: { 2: 'Thumbstick X', 3: 'Thumbstick Y' }
+    },
+    {
+      id: 'quest3-l', label: 'Meta Quest 3 Touch (Left)', mapping: 'xr-standard',
+      buttons: { 0: 'Trigger', 1: 'Grip', 3: 'Thumbstick Click', 4: 'X', 5: 'Y' },
+      axes: { 2: 'Thumbstick X', 3: 'Thumbstick Y' }
+    },
+    {
+      id: 'standard', label: 'Standard Gamepad', mapping: 'standard',
+      buttons: {
+        0: 'A / Cross', 1: 'B / Circle', 2: 'X / Square', 3: 'Y / Triangle',
+        4: 'LB / L1', 5: 'RB / R1', 6: 'LT / L2', 7: 'RT / R2',
+        8: 'View / Share', 9: 'Menu / Options', 10: 'L3', 11: 'R3',
+        12: 'D-Pad Up', 13: 'D-Pad Down', 14: 'D-Pad Left', 15: 'D-Pad Right', 16: 'Home'
+      },
+      axes: { 0: 'Left Stick X', 1: 'Left Stick Y', 2: 'Right Stick X', 3: 'Right Stick Y' }
+    },
+    { id: 'generic', label: 'Generic (index only)', mapping: '', buttons: {}, axes: {} }
+  ];
+  HC.presetById = function (id) {
+    for (var i = 0; i < HC.DEVICE_PRESETS.length; i++) {
+      if (HC.DEVICE_PRESETS[i].id === id) return HC.DEVICE_PRESETS[i];
+    }
+    return HC.DEVICE_PRESETS[HC.DEVICE_PRESETS.length - 1];
+  };
+  /* Best-guess preset for a Gamepad: xr-standard mapping -> Quest Touch,
+     "left" in the id picks the left-hand names. */
+  HC.guessPresetId = function (gamepadId, mapping) {
+    var id = String(gamepadId || '').toLowerCase();
+    if (mapping === 'xr-standard' || id.indexOf('oculus') >= 0 || id.indexOf('quest') >= 0 || id.indexOf('meta touch') >= 0) {
+      return id.indexOf('left') >= 0 ? 'quest3-l' : 'quest3-r';
+    }
+    if (mapping === 'standard') return 'standard';
+    return 'generic';
+  };
+
+  /* ---------------- validation / normalization ---------------- */
+  var idCounter = 0;
+  function genId(prefix) { idCounter += 1; return prefix + '-' + idCounter.toString(36) + '-' + Math.floor(Math.random() * 1e9).toString(36); }
+  function isStr(v) { return typeof v === 'string' && v.length > 0; }
+
+  /* Clean a list of button/key tokens. Returns null on any invalid entry.
+     dedupe=true collapses repeats (sets); sequence triggers keep order+repeats. */
+  function cleanTokens(list, dedupe, maxLen) {
+    if (!Array.isArray(list) || list.length === 0) return null;
+    if (list.length > maxLen) return null;
+    var out = [], seen = {};
+    for (var i = 0; i < list.length; i++) {
+      var v = list[i];
+      if (!isStr(v)) return null;
+      if (dedupe) { if (seen[v]) continue; seen[v] = true; }
+      out.push(v);
+    }
+    return out.length ? out : null;
+  }
+
+  function timingField(value, def, errors, field) {
+    if (value === undefined || value === null) return def;
+    if (typeof value !== 'number' || !isFinite(value) || value < TIMING_MIN || value > TIMING_MAX) {
+      errors.push(field + ': must be a number between ' + TIMING_MIN + ' and ' + TIMING_MAX + ' (ms)');
+      return def;
+    }
+    return Math.round(value);
+  }
+
+  HC.normalizeAction = function (raw, errors) {
+    errors = errors || [];
+    if (!raw || typeof raw !== 'object') { errors.push('action: missing'); return null; }
+    if (ACTION_KINDS.indexOf(raw.kind) < 0) { errors.push('action.kind: unknown "' + raw.kind + '"'); return null; }
+    if (raw.kind === 'none') return { kind: 'none' };
+    if (raw.kind === 'keys') {
+      var keys = cleanTokens(raw.keys, true, 8);
+      if (!keys) { errors.push('action.keys: must be 1..8 key names'); return null; }
+      return { kind: 'keys', keys: keys };
+    }
+    /* macro */
+    if (!Array.isArray(raw.steps) || raw.steps.length === 0 || raw.steps.length > 64) {
+      errors.push('action.steps: must be 1..64 steps'); return null;
+    }
+    var steps = [];
+    for (var i = 0; i < raw.steps.length; i++) {
+      var s = raw.steps[i] || {};
+      var sk = cleanTokens(s.keys, true, 8);
+      if (!sk) { errors.push('action.steps[' + i + '].keys: must be 1..8 key names'); return null; }
+      var d = s.delayMs;
+      if (d === undefined || d === null) d = DEFAULTS.macroDelayMs;
+      if (typeof d !== 'number' || !isFinite(d) || d < 0 || d > TIMING_MAX) {
+        errors.push('action.steps[' + i + '].delayMs: must be 0..' + TIMING_MAX); return null;
+      }
+      steps.push({ keys: sk, delayMs: Math.round(d) });
+    }
+    return { kind: 'macro', steps: steps };
+  };
+
+  HC.normalizeRule = function (raw, errors) {
+    errors = errors || [];
+    if (!raw || typeof raw !== 'object') { errors.push('rule: not an object'); return null; }
+    var t = raw.trigger || {};
+    if (TRIGGER_KINDS.indexOf(t.kind) < 0) { errors.push('trigger.kind: unknown "' + t.kind + '"'); return null; }
+    var before = errors.length;
+    var trigger = { kind: t.kind };
+    if (t.kind === 'press' || t.kind === 'double') {
+      var one = cleanTokens(t.buttons, true, 4);
+      if (!one || one.length !== 1) { errors.push('trigger.buttons: ' + t.kind + ' needs exactly 1 button'); return null; }
+      trigger.buttons = one;
+      if (t.kind === 'double') trigger.intervalMs = timingField(t.intervalMs, DEFAULTS.doubleIntervalMs, errors, 'trigger.intervalMs');
+    } else if (t.kind === 'chord') {
+      var set = cleanTokens(t.buttons, true, 10);
+      if (!set || set.length < 2) { errors.push('trigger.buttons: chord needs at least 2 buttons'); return null; }
+      trigger.buttons = set;
+      /* windowMs 0 is meaningful (no timing constraint, modifier style), so it
+         bypasses the generic timing range check. */
+      if (t.windowMs === undefined || t.windowMs === null) trigger.windowMs = DEFAULTS.chordWindowMs;
+      else if (typeof t.windowMs !== 'number' || !isFinite(t.windowMs) || t.windowMs < 0 || t.windowMs > TIMING_MAX) {
+        errors.push('trigger.windowMs: must be 0..' + TIMING_MAX); return null;
+      } else trigger.windowMs = Math.round(t.windowMs);
+    } else if (t.kind === 'longpress') {
+      var held = cleanTokens(t.buttons, true, 10);
+      if (!held) { errors.push('trigger.buttons: longpress needs at least 1 button'); return null; }
+      trigger.buttons = held;
+      trigger.holdMs = timingField(t.holdMs, DEFAULTS.holdMs, errors, 'trigger.holdMs');
+    } else if (t.kind === 'sequence') {
+      var seq = cleanTokens(t.buttons, false, 16);
+      if (!seq || seq.length < 2) { errors.push('trigger.buttons: sequence needs at least 2 buttons'); return null; }
+      trigger.buttons = seq;
+      trigger.windowMs = timingField(t.windowMs, DEFAULTS.sequenceWindowMs, errors, 'trigger.windowMs');
+    }
+    if (errors.length > before) return null;
+    var action = HC.normalizeAction(raw.action, errors);
+    if (!action) return null;
+    return {
+      id: isStr(raw.id) ? raw.id : genId('rule'),
+      name: typeof raw.name === 'string' ? raw.name : '',
+      enabled: raw.enabled !== false,
+      trigger: trigger,
+      action: action
+    };
+  };
+
+  HC.normalizeProfile = function (raw) {
+    var errors = [];
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return { profile: null, errors: ['profile: not an object'] };
+    }
+    var rules = [];
+    var rawRules = Array.isArray(raw.rules) ? raw.rules : [];
+    for (var i = 0; i < rawRules.length; i++) {
+      var rErrors = [];
+      var r = HC.normalizeRule(rawRules[i], rErrors);
+      if (r) rules.push(r);
+      else errors.push('rules[' + i + ']: ' + rErrors.join('; '));
+    }
+    return {
+      profile: {
+        id: isStr(raw.id) ? raw.id : genId('profile'),
+        name: typeof raw.name === 'string' && raw.name ? raw.name : 'Profile',
+        rules: rules
+      },
+      errors: errors
+    };
+  };
+
+  HC.exportProfile = function (profile) {
+    var n = HC.normalizeProfile(profile);
+    return JSON.stringify({ app: 'hands', version: HC.formatVersion, profile: n.profile }, null, 2);
+  };
+
+  HC.importProfile = function (jsonText) {
+    var data;
+    try { data = JSON.parse(jsonText); } catch (e) { return { profile: null, errors: ['json: ' + e.message] }; }
+    if (!data || typeof data !== 'object') return { profile: null, errors: ['json: not an object'] };
+    var inner = data;
+    if (data.app !== undefined || data.profile !== undefined) {
+      if (data.app !== 'hands') return { profile: null, errors: ['app: not a Hands profile file'] };
+      if (typeof data.version === 'number' && data.version > HC.formatVersion) {
+        return { profile: null, errors: ['version: file version ' + data.version + ' is newer than supported ' + HC.formatVersion] };
+      }
+      inner = data.profile;
+    }
+    return HC.normalizeProfile(inner);
+  };
+
+  /* Human-readable one-liners (language-neutral structure; the UI localizes
+     the kind words, these are for logs/tests). */
+  HC.describeTrigger = function (trigger) {
+    if (!trigger) return '';
+    var b = (trigger.buttons || []).join(' + ');
+    switch (trigger.kind) {
+      case 'press': return 'press ' + b;
+      case 'chord': return 'chord ' + b + (trigger.windowMs ? ' within ' + trigger.windowMs + 'ms' : ' (any timing)');
+      case 'longpress': return 'hold ' + b + ' for ' + trigger.holdMs + 'ms';
+      case 'double': return 'double-press ' + b + ' within ' + trigger.intervalMs + 'ms';
+      case 'sequence': return 'sequence ' + (trigger.buttons || []).join(' -> ') + ' (' + trigger.windowMs + 'ms/step)';
+      default: return trigger.kind;
+    }
+  };
+  HC.describeAction = function (action) {
+    if (!action) return '';
+    if (action.kind === 'keys') return action.keys.join('+');
+    if (action.kind === 'macro') return 'macro[' + action.steps.map(function (s) { return s.keys.join('+'); }).join(', ') + ']';
+    return '(no action)';
+  };
+
+  /* ---------------- combo detection engine ----------------
+     Semantics (all boundaries inclusive):
+     - press:     fires on a button's down edge.
+     - chord:     fires when the last member goes down and every member is
+                  down. If windowMs > 0, the spread between the earliest and
+                  latest member down-times must be <= windowMs. windowMs = 0
+                  means modifier style: no timing constraint. After firing,
+                  the chord latches until at least one member is released.
+     - longpress: fires once when every member has been continuously down
+                  for holdMs, measured from the moment the set completed
+                  (the latest member down-time). Releasing any member before
+                  holdMs cancels; after firing it re-arms only when the set
+                  is no longer fully down.
+     - double:    fires on the second down edge of the same button when the
+                  down-to-down gap is <= intervalMs. After firing, the next
+                  down starts a new pair; a down that arrives after the
+                  interval becomes the first of a new pair.
+     - sequence:  fires when members go down in order, each step within
+                  windowMs of the previous matched step. A wrong button
+                  resets progress, except pressing the first member starts
+                  a new attempt. Partial progress expires after windowMs.
+     Rules are independent: one event may fire several rules. Fired entries
+     are returned in rule definition order.
+     Duplicate down events (no intervening up) and stray up events are
+     ignored. Event times are clamped to be non-decreasing. */
+  HC.createEngine = function (rawRules) {
+    var rules = [];
+    var state = { btn: {}, rs: {}, now: 0 };
+    var errors = [];
+    (function init() {
+      var list = Array.isArray(rawRules) ? rawRules : [];
+      for (var i = 0; i < list.length; i++) {
+        var e = [];
+        var r = HC.normalizeRule(list[i], e);
+        if (r) { if (r.enabled) rules.push(r); }
+        else errors.push('rules[' + i + ']: ' + e.join('; '));
+      }
+      for (var j = 0; j < rules.length; j++) {
+        var k = rules[j].trigger.kind;
+        if (k === 'chord') state.rs[rules[j].id] = { latched: false };
+        else if (k === 'double') state.rs[rules[j].id] = { lastDown: null };
+        else if (k === 'sequence') state.rs[rules[j].id] = { progress: 0, lastTime: 0 };
+        else if (k === 'longpress') state.rs[rules[j].id] = { fired: false };
+        else state.rs[rules[j].id] = {};
+      }
+    })();
+
+    function btn(b) {
+      if (!state.btn[b]) state.btn[b] = { down: false, downTime: 0 };
+      return state.btn[b];
+    }
+    function allDown(buttons) {
+      for (var i = 0; i < buttons.length; i++) if (!btn(buttons[i]).down) return false;
+      return true;
+    }
+    function downSpread(buttons) {
+      var min = Infinity, max = -Infinity;
+      for (var i = 0; i < buttons.length; i++) {
+        var t = btn(buttons[i]).downTime;
+        if (t < min) min = t;
+        if (t > max) max = t;
+      }
+      return max - min;
+    }
+    function emit(rule, time, out) {
+      out.push({ ruleId: rule.id, name: rule.name, triggerKind: rule.trigger.kind, action: rule.action, time: time });
+    }
+    /* Time-based triggers due at `now`, evaluated against the CURRENT button
+       state. handleEvent calls this before applying the event, so a release
+       exactly at the hold threshold still counts as a completed hold. */
+    function checkLongpress(now, out) {
+      for (var i = 0; i < rules.length; i++) {
+        var rule = rules[i];
+        if (rule.trigger.kind !== 'longpress') continue;
+        var rs = state.rs[rule.id];
+        if (!allDown(rule.trigger.buttons)) { rs.fired = false; continue; }
+        if (rs.fired) continue;
+        var start = -Infinity;
+        for (var j = 0; j < rule.trigger.buttons.length; j++) {
+          start = Math.max(start, btn(rule.trigger.buttons[j]).downTime);
+        }
+        if (now - start >= rule.trigger.holdMs) {
+          rs.fired = true;
+          emit(rule, start + rule.trigger.holdMs, out);
+        }
+      }
+    }
+    function expireSequences(now) {
+      for (var i = 0; i < rules.length; i++) {
+        var rule = rules[i];
+        if (rule.trigger.kind !== 'sequence') continue;
+        var rs = state.rs[rule.id];
+        if (rs.progress > 0 && now - rs.lastTime > rule.trigger.windowMs) rs.progress = 0;
+      }
+    }
+
+    var engine = {
+      errors: errors,
+      ruleCount: rules.length,
+      advanceTo: function (now) {
+        if (typeof now !== 'number' || !isFinite(now)) return [];
+        if (now < state.now) now = state.now;
+        state.now = now;
+        var out = [];
+        checkLongpress(now, out);
+        expireSequences(now);
+        return out;
+      },
+      handleEvent: function (ev) {
+        if (!ev || !isStr(ev.button) || (ev.type !== 'down' && ev.type !== 'up')) return [];
+        var t = (typeof ev.time === 'number' && isFinite(ev.time)) ? ev.time : state.now;
+        if (t < state.now) t = state.now;
+        state.now = t;
+        var out = [];
+        checkLongpress(t, out);
+        expireSequences(t);
+        var bs = btn(ev.button);
+        var i, rule, rs;
+        if (ev.type === 'up') {
+          if (!bs.down) return out;
+          bs.down = false;
+          for (i = 0; i < rules.length; i++) {
+            rule = rules[i];
+            if (rule.trigger.kind === 'chord' && rule.trigger.buttons.indexOf(ev.button) >= 0) {
+              state.rs[rule.id].latched = false;
+            }
+          }
+          return out;
+        }
+        /* down edge */
+        if (bs.down) return out; /* duplicate down: not a new edge */
+        bs.down = true;
+        bs.downTime = t;
+        for (i = 0; i < rules.length; i++) {
+          rule = rules[i];
+          rs = state.rs[rule.id];
+          var tr = rule.trigger;
+          if (tr.kind === 'press') {
+            if (tr.buttons[0] === ev.button) emit(rule, t, out);
+          } else if (tr.kind === 'chord') {
+            if (tr.buttons.indexOf(ev.button) < 0 || rs.latched) continue;
+            if (allDown(tr.buttons) && (tr.windowMs === 0 || downSpread(tr.buttons) <= tr.windowMs)) {
+              rs.latched = true;
+              emit(rule, t, out);
+            }
+          } else if (tr.kind === 'double') {
+            if (tr.buttons[0] !== ev.button) continue;
+            if (rs.lastDown !== null && t - rs.lastDown <= tr.intervalMs) {
+              rs.lastDown = null;
+              emit(rule, t, out);
+            } else {
+              rs.lastDown = t;
+            }
+          } else if (tr.kind === 'sequence') {
+            if (ev.button === tr.buttons[rs.progress]) {
+              rs.progress += 1;
+              rs.lastTime = t;
+              if (rs.progress >= tr.buttons.length) {
+                rs.progress = 0;
+                emit(rule, t, out);
+              }
+            } else {
+              rs.progress = (ev.button === tr.buttons[0]) ? 1 : 0;
+              if (rs.progress === 1) rs.lastTime = t;
+            }
+          }
+        }
+        return out;
+      },
+      reset: function () {
+        state.btn = {};
+        for (var id in state.rs) {
+          var k = null;
+          for (var i = 0; i < rules.length; i++) if (rules[i].id === id) k = rules[i].trigger.kind;
+          if (k === 'chord') state.rs[id] = { latched: false };
+          else if (k === 'double') state.rs[id] = { lastDown: null };
+          else if (k === 'sequence') state.rs[id] = { progress: 0, lastTime: 0 };
+          else if (k === 'longpress') state.rs[id] = { fired: false };
+          else state.rs[id] = {};
+        }
+      },
+      isDown: function (b) { return btn(b).down; }
+    };
+    return engine;
+  };
+
+  global.HC = HC;
+})(typeof window !== 'undefined' ? window : globalThis);
+/* ==== HANDS CORE END ==== */
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var HC = window.HC;
+
+  /* ---------------- i18n ---------------- */
+  var I18N = {
+    ja: {
+      tagline: 'ボタンの少ないコントローラに、組み合わせ操作を。',
+      language: '言語', devices: 'デバイス', devicesSub: 'Gamepad API で実入力を読みます',
+      kbPadName: 'キーボードテスト', kbPadMeta: 'ハードウェアが無くても試せます',
+      kbHint: '入力欄にフォーカスが無いとき、A S D F J K L ; の8キーがボタンとして働きます。',
+      noPad: 'コントローラが未接続です。コントローラを接続して何かボタンを押すと、ここに表示されます。',
+      output: 'テスト出力', outputSub: '発火した割り当てのシミュレーション',
+      flashIdle: '割り当てが発火するとここに表示されます', clearLog: 'ログを消す',
+      outputNote: 'これは画面内シミュレーションです。他のアプリへキーを送ることはブラウザからはできません（README参照）。',
+      rules: '割り当てルール', rulesSub: 'プロファイルはこの端末の中だけに保存されます',
+      newProfile: '新規', dupProfile: '複製', delProfile: '削除', export: '書き出し (JSON)', import: '読み込み',
+      addRule: '＋ ルールを追加', editorTitle: 'ルールを編集', ruleName: '名前',
+      triggerKind: 'きっかけ', kindPress: '単押し', kindChord: '同時押し', kindLong: '長押し',
+      kindDouble: '二度押し', kindSeq: '順番押し', learn: '実入力で覚える', learning: '入力待ち…（やめる）',
+      triggerButtons: 'ボタン', windowMs: '同時とみなす幅 (ms)', windowHint: '0 = 制限なし（修飾キーのように使う）',
+      holdMs: '長押し時間 (ms)', intervalMs: '二度押しの間隔 (ms)', seqWindowMs: '一手ごとの制限時間 (ms)',
+      actionKind: '動作', actKeys: 'キーを押す', actMacro: 'マクロ（キーの並び）', actNone: 'なし（発火だけ記録）',
+      actionKeys: 'キー', captureKeys: 'キー入力で指定', capturing: 'キーを押してください…（Escで中止）',
+      addStep: '＋ 手順を追加', save: '保存', cancel: 'キャンセル', delete: 'このルールを削除',
+      confirmDelete: '本当に削除しますか？', footerNote: 'Hands は設定と判定のためのスタジオです。設定はこの端末の中にだけ保存され、外部へ送信されることはありません。他のアプリへ実際にキーを届けるには将来のネイティブ版が必要です（設計メモ: docs/INJECTION.md）。',
+      padShort: 'パッド', disconnected: '未接続', preset: 'ボタンの名前',
+      kbKey: 'テストキー', buttonN: 'ボタン', axes: '軸',
+      descPress: '{b} を押す', descChord: '{b} を同時押し', descChordAny: '{b} を一緒に押す（タイミング不問）',
+      descLong: '{b} を {ms}ms 長押し', descDouble: '{b} を {ms}ms 以内に二度押し', descSeq: '{b} を順番に（各 {ms}ms 以内）',
+      thenDo: '→', unnamed: '（無名）', newProfileName: '新しいプロファイル', copySuffix: ' のコピー',
+      starterName: 'スターター（キーボードで試せます）',
+      learnHintChord: '覚えたい組み合わせを実際に押してください。全て離すと確定します。',
+      learnHintSeq: '順番どおりに押してください。全て離して少し待つと確定します。',
+      learnHintOne: '覚えたいボタンを押してください。',
+      errNeedButtons2: 'ボタンを2つ以上選んでください。', errNeedButton1: 'ボタンを1つ選んでください。',
+      errNeedKeys: 'キーを指定してください。', errNeedStepKeys: 'マクロの手順にキーが無いものがあります。',
+      imported: 'プロファイルを読み込みました。', importFailed: '読み込みに失敗しました: ',
+      logFire: '発火', logMacroStep: 'マクロ手順', profile: 'プロファイル',
+      delay: '間隔 (ms)', remove: '削除', capture: 'キー指定', step: '手順'
+    },
+    en: {
+      tagline: 'Combos for controllers that are short on buttons.',
+      language: 'Language', devices: 'Devices', devicesSub: 'Reads real input via the Gamepad API',
+      kbPadName: 'Keyboard test', kbPadMeta: 'Try it without any hardware',
+      kbHint: 'When no text field is focused, the 8 keys A S D F J K L ; act as buttons.',
+      noPad: 'No controller connected. Connect one and press any button and it will appear here.',
+      output: 'Test output', outputSub: 'Simulated output of fired bindings',
+      flashIdle: 'Fired bindings appear here', clearLog: 'Clear log',
+      outputNote: 'This is an on-screen simulation. A browser cannot send keys to other apps (see README).',
+      rules: 'Binding rules', rulesSub: 'Profiles are stored only on this device',
+      newProfile: 'New', dupProfile: 'Duplicate', delProfile: 'Delete', export: 'Export (JSON)', import: 'Import',
+      addRule: '+ Add rule', editorTitle: 'Edit rule', ruleName: 'Name',
+      triggerKind: 'Trigger', kindPress: 'Press', kindChord: 'Chord (simultaneous)', kindLong: 'Long press',
+      kindDouble: 'Double press', kindSeq: 'Sequence', learn: 'Learn from real input', learning: 'Listening… (tap to stop)',
+      triggerButtons: 'Buttons', windowMs: 'Simultaneity window (ms)', windowHint: '0 = no limit (modifier style)',
+      holdMs: 'Hold time (ms)', intervalMs: 'Double-press interval (ms)', seqWindowMs: 'Per-step time limit (ms)',
+      actionKind: 'Action', actKeys: 'Press keys', actMacro: 'Macro (key sequence)', actNone: 'None (log only)',
+      actionKeys: 'Keys', captureKeys: 'Capture from keyboard', capturing: 'Press keys… (Esc to cancel)',
+      addStep: '+ Add step', save: 'Save', cancel: 'Cancel', delete: 'Delete this rule',
+      confirmDelete: 'Really delete?', footerNote: 'Hands is a studio for configuring and verifying combos. Settings live only on this device and are never sent anywhere. Delivering keys to other apps needs a future native build (design memo: docs/INJECTION.md).',
+      padShort: 'Pad', disconnected: 'disconnected', preset: 'Button names',
+      kbKey: 'Test key', buttonN: 'Button', axes: 'Axes',
+      descPress: 'Press {b}', descChord: 'Press {b} together', descChordAny: 'Hold {b} together (any timing)',
+      descLong: 'Hold {b} for {ms}ms', descDouble: 'Double-press {b} within {ms}ms', descSeq: 'Press {b} in order ({ms}ms per step)',
+      thenDo: '→', unnamed: '(unnamed)', newProfileName: 'New profile', copySuffix: ' copy',
+      starterName: 'Starter (try with your keyboard)',
+      learnHintChord: 'Press the combination on your device. Release everything to finish.',
+      learnHintSeq: 'Press the buttons in order. Release everything and wait a moment to finish.',
+      learnHintOne: 'Press the button you want to use.',
+      errNeedButtons2: 'Pick at least 2 buttons.', errNeedButton1: 'Pick a button.',
+      errNeedKeys: 'Specify the keys.', errNeedStepKeys: 'A macro step has no keys.',
+      imported: 'Profile imported.', importFailed: 'Import failed: ',
+      logFire: 'FIRED', logMacroStep: 'macro step', profile: 'Profile',
+      delay: 'delay (ms)', remove: 'Remove', capture: 'Capture', step: 'Step'
+    }
+  };
+  var lang = 'ja';
+  function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
+  function fmt(key, vars) {
+    var s = t(key);
+    for (var k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
+    return s;
+  }
+
+  /* ---------------- state & persistence ---------------- */
+  var LS_KEY = 'hands.studio.v1';
+  var KB = [
+    { code: 'KeyA', label: 'A' }, { code: 'KeyS', label: 'S' }, { code: 'KeyD', label: 'D' }, { code: 'KeyF', label: 'F' },
+    { code: 'KeyJ', label: 'J' }, { code: 'KeyK', label: 'K' }, { code: 'KeyL', label: 'L' }, { code: 'Semicolon', label: ';' }
+  ];
+  var KB_BY_CODE = {};
+  KB.forEach(function (k, i) { KB_BY_CODE[k.code] = 'k' + i; });
+
+  var store = { profiles: [], activeId: null, padPresets: {} };
+  var engine = null;
+
+  function uid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e9).toString(36); }
+
+  function starterProfile() {
+    return {
+      id: uid('profile'), name: t('starterName'),
+      rules: [
+        { id: uid('rule'), name: 'Demo Copy', enabled: true, trigger: { kind: 'chord', buttons: ['k0', 'k1'], windowMs: 0 }, action: { kind: 'keys', keys: ['Ctrl', 'C'] } },
+        { id: uid('rule'), name: 'Demo Paste', enabled: true, trigger: { kind: 'double', buttons: ['k3'], intervalMs: 350 }, action: { kind: 'keys', keys: ['Ctrl', 'V'] } },
+        { id: uid('rule'), name: 'Demo Confirm', enabled: true, trigger: { kind: 'longpress', buttons: ['k4'], holdMs: 600 }, action: { kind: 'keys', keys: ['Enter'] } },
+        { id: uid('rule'), name: 'Demo Save', enabled: true, trigger: { kind: 'sequence', buttons: ['k0', 'k1', 'k2'], windowMs: 800 }, action: { kind: 'macro', steps: [{ keys: ['Ctrl', 'S'], delayMs: 50 }, { keys: ['Enter'], delayMs: 150 }] } },
+        { id: uid('rule'), name: 'Demo Cancel', enabled: true, trigger: { kind: 'press', buttons: ['k7'] }, action: { kind: 'keys', keys: ['Esc'] } }
+      ]
+    };
+  }
+
+  function saveStore() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ v: 1, lang: lang, profiles: store.profiles, activeId: store.activeId, padPresets: store.padPresets })); } catch (e) { /* storage unavailable: session-only */ }
+  }
+  function loadStore() {
+    var raw = null;
+    try { raw = localStorage.getItem(LS_KEY); } catch (e) { /* ignore */ }
+    if (raw) {
+      try {
+        var data = JSON.parse(raw);
+        if (data && Array.isArray(data.profiles) && data.profiles.length) {
+          store.profiles = data.profiles.map(function (p) { return HC.normalizeProfile(p).profile; }).filter(Boolean);
+          store.activeId = data.activeId;
+          store.padPresets = data.padPresets || {};
+          if (data.lang && I18N[data.lang]) lang = data.lang;
+        }
+      } catch (e) { /* corrupted storage: fall through to starter */ }
+    }
+    if (!store.profiles.length) {
+      var s = starterProfile();
+      store.profiles = [s];
+      store.activeId = s.id;
+    }
+    if (!activeProfile()) store.activeId = store.profiles[0].id;
+  }
+  function activeProfile() {
+    for (var i = 0; i < store.profiles.length; i++) if (store.profiles[i].id === store.activeId) return store.profiles[i];
+    return null;
+  }
+  function rebuildEngine() {
+    var p = activeProfile();
+    engine = HC.createEngine(p ? p.rules : []);
+    var errBox = document.getElementById('profileErr');
+    errBox.textContent = engine.errors.length ? engine.errors.join(' / ') : '';
+  }
+
+  /* ---------------- button identity & names ---------------- */
+  var knownPads = {}; /* index -> {id, mapping, presetId, connected} */
+  function registerPad(gp) {
+    var cur = knownPads[gp.index];
+    var presetId = (store.padPresets[gp.id]) || (cur && cur.presetId) || HC.guessPresetId(gp.id, gp.mapping);
+    knownPads[gp.index] = { id: gp.id, mapping: gp.mapping, presetId: presetId, connected: true };
+  }
+  function buttonName(id) {
+    if (typeof id !== 'string') return String(id);
+    if (id.charAt(0) === 'k') {
+      var ki = parseInt(id.slice(1), 10);
+      return t('kbKey') + ' ' + (KB[ki] ? KB[ki].label : id);
+    }
+    var m = /^g(\d+)b(\d+)$/.exec(id);
+    if (m) {
+      var pad = knownPads[+m[1]];
+      var btn = +m[2];
+      if (pad) {
+        var named = HC.presetById(pad.presetId).buttons[btn];
+        if (named) return named + ' (' + t('padShort') + ' ' + (+m[1] + 1) + ')';
+      }
+      return t('buttonN') + ' ' + btn + ' (' + t('padShort') + ' ' + (+m[1] + 1) + ')';
+    }
+    return id;
+  }
+  function knownButtonIds() {
+    var ids = [];
+    Object.keys(knownPads).forEach(function (idx) {
+      var count = (lastSnapshot[+idx] && lastSnapshot[+idx].buttons.length) || 17;
+      for (var i = 0; i < count; i++) ids.push('g' + idx + 'b' + i);
+    });
+    KB.forEach(function (k, i) { ids.push('k' + i); });
+    return ids;
+  }
+  var TOKEN_LABELS = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space' };
+  function keyLabel(tok) { return TOKEN_LABELS[tok] || tok; }
+  function actionText(action) {
+    if (!action) return '';
+    if (action.kind === 'keys') return action.keys.map(keyLabel).join(' + ');
+    if (action.kind === 'macro') return action.steps.map(function (s) { return s.keys.map(keyLabel).join(' + '); }).join(' , ');
+    return '';
+  }
+  function triggerText(tr) {
+    var names = tr.buttons.map(buttonName);
+    switch (tr.kind) {
+      case 'press': return fmt('descPress', { b: names[0] });
+      case 'chord': return tr.windowMs === 0 ? fmt('descChordAny', { b: names.join(' + ') }) : fmt('descChord', { b: names.join(' + ') });
+      case 'longpress': return fmt('descLong', { b: names.join(' + '), ms: tr.holdMs });
+      case 'double': return fmt('descDouble', { b: names[0], ms: tr.intervalMs });
+      case 'sequence': return fmt('descSeq', { b: names.join(' → '), ms: tr.windowMs });
+      default: return tr.kind;
+    }
+  }
+
+  /* ---------------- input pipeline ---------------- */
+  var cellEls = {}; /* buttonId -> {cell, bar} */
+  var lastSnapshot = {}; /* padIndex -> {buttons:[{pressed,value}], axes:[..]} */
+  var prevPadButtons = {}; /* padIndex -> [bool] */
+
+  function dispatchButtonEvent(buttonId, type, time) {
+    var ref = cellEls[buttonId];
+    if (ref) ref.cell.classList.toggle('on', type === 'down');
+    if (learn.active) { learnFeed(buttonId, type, time); return; }
+    if (!engine) return;
+    var fired = engine.handleEvent({ button: buttonId, type: type, time: time });
+    for (var i = 0; i < fired.length; i++) handleFired(fired[i]);
+  }
+
+  function poll() {
+    var now = performance.now();
+    if (navigator.getGamepads) {
+      var pads = navigator.getGamepads();
+      for (var i = 0; i < pads.length; i++) {
+        var gp = pads[i];
+        if (!gp) continue;
+        if (!knownPads[gp.index] || !knownPads[gp.index].connected) { registerPad(gp); renderPads(); }
+        lastSnapshot[gp.index] = {
+          buttons: gp.buttons.map(function (b) { return { pressed: !!b.pressed, value: b.value }; }),
+          axes: Array.prototype.slice.call(gp.axes)
+        };
+        var prev = prevPadButtons[gp.index] || [];
+        for (var bi = 0; bi < gp.buttons.length; bi++) {
+          var down = !!gp.buttons[bi].pressed;
+          if (down !== !!prev[bi]) dispatchButtonEvent('g' + gp.index + 'b' + bi, down ? 'down' : 'up', now);
+        }
+        prevPadButtons[gp.index] = gp.buttons.map(function (b) { return !!b.pressed; });
+        updatePadVisual(gp.index);
+      }
+    }
+    if (engine) {
+      var fired = engine.advanceTo(now);
+      for (var j = 0; j < fired.length; j++) handleFired(fired[j]);
+    }
+    learnTick(now);
+    requestAnimationFrame(poll);
+  }
+
+  function updatePadVisual(index) {
+    var snap = lastSnapshot[index];
+    if (!snap) return;
+    for (var bi = 0; bi < snap.buttons.length; bi++) {
+      var ref = cellEls['g' + index + 'b' + bi];
+      if (!ref) continue;
+      ref.cell.classList.toggle('on', snap.buttons[bi].pressed);
+      if (ref.bar) ref.bar.style.width = Math.round(snap.buttons[bi].value * 100) + '%';
+    }
+    var axEl = document.getElementById('axes-g' + index);
+    if (axEl) {
+      var txt = t('axes') + ': ' + snap.axes.map(function (a) { return a.toFixed(2); }).join(', ');
+      if (axEl.textContent !== txt) axEl.textContent = txt;
+    }
+  }
+
+  /* keyboard test buttons */
+  function isFormTarget(el) {
+    if (!el) return false;
+    var tag = (el.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+  }
+  window.addEventListener('keydown', function (e) {
+    if (capture) { captureKeyDown(e); return; }
+    if (e.repeat || isFormTarget(e.target)) return;
+    var id = KB_BY_CODE[e.code];
+    if (id) dispatchButtonEvent(id, 'down', performance.now());
+  });
+  window.addEventListener('keyup', function (e) {
+    if (capture) { captureKeyUp(e); return; }
+    var id = KB_BY_CODE[e.code];
+    if (id) dispatchButtonEvent(id, 'up', performance.now());
+  });
+
+  window.addEventListener('gamepadconnected', function (e) {
+    registerPad(e.gamepad);
+    renderPads();
+  });
+  window.addEventListener('gamepaddisconnected', function (e) {
+    if (knownPads[e.gamepad.index]) knownPads[e.gamepad.index].connected = false;
+    renderPads();
+  });
+
+  /* ---------------- device monitor rendering ---------------- */
+  function renderPads() {
+    var list = document.getElementById('padList');
+    list.innerHTML = '';
+    cellEls = {};
+    var anyConnected = false;
+    Object.keys(knownPads).forEach(function (idx) {
+      var pad = knownPads[idx];
+      if (pad.connected) anyConnected = true;
+      var snap = lastSnapshot[idx];
+      var count = snap ? snap.buttons.length : 17;
+      var div = document.createElement('div');
+      div.className = 'pad';
+      var head = document.createElement('div');
+      head.className = 'pad-head';
+      var name = document.createElement('span');
+      name.className = 'pad-name';
+      name.textContent = pad.id || ('Gamepad ' + idx);
+      var meta = document.createElement('span');
+      meta.className = 'pad-meta';
+      meta.textContent = t('padShort') + ' ' + (+idx + 1) + (pad.connected ? '' : ' (' + t('disconnected') + ')');
+      var sel = document.createElement('select');
+      sel.setAttribute('aria-label', t('preset'));
+      HC.DEVICE_PRESETS.forEach(function (p) {
+        var opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.label;
+        if (p.id === pad.presetId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', function () {
+        pad.presetId = sel.value;
+        store.padPresets[pad.id] = sel.value;
+        saveStore(); renderPads(); renderRules(); renderPicker();
+      });
+      head.appendChild(name); head.appendChild(meta); head.appendChild(sel);
+      div.appendChild(head);
+      var grid = document.createElement('div');
+      grid.className = 'btn-grid';
+      var preset = HC.presetById(pad.presetId);
+      for (var bi = 0; bi < count; bi++) {
+        var cell = document.createElement('div');
+        cell.className = 'btn-cell';
+        var biEl = document.createElement('div'); biEl.className = 'bi'; biEl.textContent = 'B' + bi;
+        var bnEl = document.createElement('div'); bnEl.className = 'bn'; bnEl.textContent = preset.buttons[bi] || ('B' + bi);
+        var bv = document.createElement('div'); bv.className = 'bv';
+        var bar = document.createElement('i'); bv.appendChild(bar);
+        cell.appendChild(biEl); cell.appendChild(bnEl); cell.appendChild(bv);
+        grid.appendChild(cell);
+        cellEls['g' + idx + 'b' + bi] = { cell: cell, bar: bar };
+      }
+      div.appendChild(grid);
+      var axes = document.createElement('div');
+      axes.className = 'axes'; axes.id = 'axes-g' + idx;
+      div.appendChild(axes);
+      list.appendChild(div);
+    });
+    /* keyboard test pad */
+    var kbGrid = document.getElementById('kbGrid');
+    kbGrid.innerHTML = '';
+    KB.forEach(function (k, i) {
+      var cell = document.createElement('div');
+      cell.className = 'btn-cell';
+      var biEl = document.createElement('div'); biEl.className = 'bi'; biEl.textContent = 'k' + i;
+      var bnEl = document.createElement('div'); bnEl.className = 'bn'; bnEl.textContent = k.label;
+      cell.appendChild(biEl); cell.appendChild(bnEl);
+      kbGrid.appendChild(cell);
+      cellEls['k' + i] = { cell: cell, bar: null };
+    });
+    document.getElementById('noPadHint').style.display = anyConnected ? 'none' : '';
+    if (editing) renderPicker();
+  }
+
+  /* ---------------- output simulation ---------------- */
+  I18N.ja.edit = '編集'; I18N.en.edit = 'Edit';
+  function $(id) { return document.getElementById(id); }
+  function timeStr() {
+    var d = new Date();
+    return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  }
+  var flashTimer = null;
+  function flash(text) {
+    var f = $('flash');
+    f.textContent = text;
+    f.classList.add('hit');
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { f.classList.remove('hit'); }, 900);
+  }
+  function logLine(kind, ruleName, text) {
+    var log = $('log');
+    var div = document.createElement('div');
+    var lt = document.createElement('span'); lt.className = 'lt'; lt.textContent = timeStr() + ' ';
+    var lk = document.createElement('span'); lk.className = 'lr'; lk.textContent = kind + ' ';
+    var ln = document.createElement('span'); ln.textContent = ruleName + ' ';
+    var la = document.createElement('span'); la.className = 'la'; la.textContent = text;
+    div.appendChild(lt); div.appendChild(lk); div.appendChild(ln); div.appendChild(la);
+    log.appendChild(div);
+    while (log.children.length > 300) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+  function handleFired(f) {
+    var card = document.querySelector('[data-rule-id="' + f.ruleId + '"]');
+    if (card) {
+      card.classList.add('flash');
+      setTimeout(function () { card.classList.remove('flash'); }, 650);
+    }
+    var name = f.name || t('unnamed');
+    if (f.action.kind === 'keys') {
+      var txt = f.action.keys.map(keyLabel).join(' + ');
+      logLine(t('logFire'), name, '→ ' + txt);
+      flash(txt);
+    } else if (f.action.kind === 'macro') {
+      logLine(t('logFire'), name, '→ macro (' + f.action.steps.length + ')');
+      var acc = 0;
+      f.action.steps.forEach(function (s, i) {
+        acc += s.delayMs;
+        setTimeout(function () {
+          var st = s.keys.map(keyLabel).join(' + ');
+          logLine(t('logMacroStep') + ' ' + (i + 1), name, '→ ' + st);
+          flash(st);
+        }, acc);
+      });
+    } else {
+      logLine(t('logFire'), name, '→ (' + f.triggerKind + ')');
+      flash(name);
+    }
+  }
+
+  /* ---------------- rules list ---------------- */
+  function renderRules() {
+    var sel = $('profileSel');
+    sel.innerHTML = '';
+    store.profiles.forEach(function (p) {
+      var opt = document.createElement('option');
+      opt.value = p.id; opt.textContent = p.name;
+      if (p.id === store.activeId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    var active = activeProfile();
+    $('profileName').value = active ? active.name : '';
+    var list = $('ruleList');
+    list.innerHTML = '';
+    if (!active) return;
+    active.rules.forEach(function (rule) {
+      var card = document.createElement('div');
+      card.className = 'rule-card' + (rule.enabled ? '' : ' off');
+      card.setAttribute('data-rule-id', rule.id);
+      var sw = document.createElement('label');
+      sw.className = 'switch';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = !!rule.enabled;
+      cb.addEventListener('change', function () {
+        rule.enabled = cb.checked;
+        saveStore(); rebuildEngine(); renderRules();
+      });
+      var track = document.createElement('span'); track.className = 'track';
+      sw.appendChild(cb); sw.appendChild(track);
+      var main = document.createElement('div'); main.className = 'rc-main';
+      var nm = document.createElement('div'); nm.className = 'rc-name'; nm.textContent = rule.name || t('unnamed');
+      var desc = document.createElement('div'); desc.className = 'rc-desc';
+      var b = document.createElement('b'); b.textContent = triggerText(rule.trigger);
+      desc.appendChild(b);
+      if (rule.action.kind !== 'none') {
+        desc.appendChild(document.createTextNode(' ' + t('thenDo') + ' '));
+        var a = document.createElement('span'); a.className = 'act'; a.textContent = actionText(rule.action);
+        desc.appendChild(a);
+      }
+      main.appendChild(nm); main.appendChild(desc);
+      var editBtn = document.createElement('button');
+      editBtn.textContent = t('edit');
+      editBtn.addEventListener('click', function () { openEditor(rule); });
+      card.appendChild(sw); card.appendChild(main); card.appendChild(editBtn);
+      list.appendChild(card);
+    });
+  }
+
+  /* ---------------- rule editor ---------------- */
+  var editing = null;
+  function defaultDraft() {
+    return {
+      id: null, name: '', enabled: true, triggerKind: 'chord', buttons: [],
+      windowMs: HC.DEFAULTS.chordWindowMs, holdMs: HC.DEFAULTS.holdMs,
+      intervalMs: HC.DEFAULTS.doubleIntervalMs, seqWindowMs: HC.DEFAULTS.sequenceWindowMs,
+      actionKind: 'keys', keys: [], steps: [{ keys: [], delayMs: HC.DEFAULTS.macroDelayMs }]
+    };
+  }
+  function draftFromRule(rule) {
+    var d = defaultDraft();
+    d.id = rule.id; d.name = rule.name || ''; d.enabled = rule.enabled !== false;
+    d.triggerKind = rule.trigger.kind;
+    d.buttons = rule.trigger.buttons.slice();
+    if (rule.trigger.kind === 'chord') d.windowMs = rule.trigger.windowMs;
+    if (rule.trigger.kind === 'sequence') d.seqWindowMs = rule.trigger.windowMs;
+    if (rule.trigger.kind === 'longpress') d.holdMs = rule.trigger.holdMs;
+    if (rule.trigger.kind === 'double') d.intervalMs = rule.trigger.intervalMs;
+    d.actionKind = rule.action.kind;
+    if (rule.action.kind === 'keys') d.keys = rule.action.keys.slice();
+    if (rule.action.kind === 'macro') d.steps = rule.action.steps.map(function (s) { return { keys: s.keys.slice(), delayMs: s.delayMs }; });
+    return d;
+  }
+  function openEditor(rule) {
+    stopLearn(); endCapture(null);
+    editing = rule ? draftFromRule(rule) : defaultDraft();
+    $('editor').classList.add('open');
+    renderEditor();
+    $('editor').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function closeEditor() {
+    stopLearn(); endCapture(null);
+    editing = null;
+    $('editor').classList.remove('open');
+  }
+  function renderEditor() {
+    if (!editing) return;
+    $('edName').value = editing.name;
+    $('edKind').value = editing.triggerKind;
+    $('edWindow').value = editing.windowMs;
+    $('edHold').value = editing.holdMs;
+    $('edInterval').value = editing.intervalMs;
+    $('edSeqWindow').value = editing.seqWindowMs;
+    $('edActionKind').value = editing.actionKind;
+    $('edErr').textContent = '';
+    updateKindVisibility();
+    renderChips(); renderPicker(); renderActionArea();
+  }
+  function updateKindVisibility() {
+    var k = editing.triggerKind;
+    $('rowWindow').style.display = k === 'chord' ? '' : 'none';
+    $('rowHold').style.display = k === 'longpress' ? '' : 'none';
+    $('rowInterval').style.display = k === 'double' ? '' : 'none';
+    $('rowSeqWindow').style.display = k === 'sequence' ? '' : 'none';
+    $('actionKeysBox').style.display = editing.actionKind === 'keys' ? '' : 'none';
+    $('actionMacroBox').style.display = editing.actionKind === 'macro' ? '' : 'none';
+    var hint = $('learnHint');
+    if (!learn.active) {
+      hint.textContent = k === 'chord' ? t('learnHintChord') : (k === 'sequence' ? t('learnHintSeq') : t('learnHintOne'));
+    }
+  }
+  function renderChips() {
+    var box = $('edButtons');
+    box.innerHTML = '';
+    editing.buttons.forEach(function (b, i) {
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      if (editing.triggerKind === 'sequence') {
+        var ord = document.createElement('span'); ord.className = 'ord'; ord.textContent = String(i + 1);
+        chip.appendChild(ord);
+      }
+      chip.appendChild(document.createTextNode(buttonName(b)));
+      var x = document.createElement('button');
+      x.textContent = '×'; x.setAttribute('aria-label', 'remove');
+      x.addEventListener('click', function () { editing.buttons.splice(i, 1); renderChips(); renderPicker(); });
+      chip.appendChild(x);
+      box.appendChild(chip);
+    });
+  }
+  function renderPicker() {
+    if (!editing) return;
+    var box = $('buttonPicker');
+    box.innerHTML = '';
+    knownButtonIds().forEach(function (id) {
+      var btn = document.createElement('button');
+      btn.textContent = buttonName(id);
+      if (editing.buttons.indexOf(id) >= 0) btn.className = 'picked';
+      btn.addEventListener('click', function () { pickerPick(id); });
+      box.appendChild(btn);
+    });
+  }
+  function pickerPick(id) {
+    var k = editing.triggerKind;
+    if (k === 'press' || k === 'double') {
+      editing.buttons = [id];
+    } else if (k === 'sequence') {
+      if (editing.buttons.length < 16) editing.buttons.push(id);
+    } else {
+      var i = editing.buttons.indexOf(id);
+      if (i >= 0) editing.buttons.splice(i, 1);
+      else if (editing.buttons.length < 10) editing.buttons.push(id);
+    }
+    renderChips(); renderPicker();
+  }
+  var COMMON_KEYS = ['Ctrl', 'Alt', 'Shift', 'Meta', 'Space', 'Enter', 'Esc', 'Tab', 'Backspace', 'Delete',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6'];
+  function keyChips(keys, onRemove) {
+    var frag = document.createDocumentFragment();
+    keys.forEach(function (tok, i) {
+      var chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.appendChild(document.createTextNode(keyLabel(tok)));
+      var x = document.createElement('button');
+      x.textContent = '×'; x.setAttribute('aria-label', 'remove');
+      x.addEventListener('click', function () { onRemove(i); });
+      chip.appendChild(x);
+      frag.appendChild(chip);
+    });
+    return frag;
+  }
+  function renderActionArea() {
+    if (!editing) return;
+    var keysBox = $('edKeys');
+    keysBox.innerHTML = '';
+    keysBox.appendChild(keyChips(editing.keys, function (i) { editing.keys.splice(i, 1); renderActionArea(); }));
+    var picker = $('commonKeys');
+    picker.innerHTML = '';
+    COMMON_KEYS.forEach(function (tok) {
+      var btn = document.createElement('button');
+      btn.textContent = keyLabel(tok);
+      if (editing.keys.indexOf(tok) >= 0) btn.className = 'picked';
+      btn.addEventListener('click', function () {
+        var i = editing.keys.indexOf(tok);
+        if (i >= 0) editing.keys.splice(i, 1);
+        else if (editing.keys.length < 8) editing.keys.push(tok);
+        renderActionArea();
+      });
+      picker.appendChild(btn);
+    });
+    var stepsBox = $('macroSteps');
+    stepsBox.innerHTML = '';
+    editing.steps.forEach(function (step, si) {
+      var row = document.createElement('div');
+      row.className = 'macro-step';
+      var lab = document.createElement('span');
+      lab.className = 'hint'; lab.textContent = t('step') + ' ' + (si + 1);
+      var chips = document.createElement('span');
+      chips.className = 'chips';
+      chips.appendChild(keyChips(step.keys, function (i) { step.keys.splice(i, 1); renderActionArea(); }));
+      var cap = document.createElement('button');
+      cap.textContent = t('capture');
+      cap.addEventListener('click', function () { startCapture('step', si, cap); });
+      var dlab = document.createElement('span');
+      dlab.className = 'hint'; dlab.textContent = t('delay');
+      var din = document.createElement('input');
+      din.type = 'number'; din.min = '0'; din.max = '60000'; din.step = '10'; din.value = step.delayMs;
+      din.style.width = '90px';
+      din.addEventListener('change', function () {
+        var v = parseInt(din.value, 10);
+        step.delayMs = isFinite(v) ? v : HC.DEFAULTS.macroDelayMs;
+      });
+      var rm = document.createElement('button');
+      rm.textContent = t('remove'); rm.className = 'danger';
+      rm.addEventListener('click', function () { editing.steps.splice(si, 1); renderActionArea(); });
+      row.appendChild(lab); row.appendChild(chips); row.appendChild(cap);
+      row.appendChild(dlab); row.appendChild(din); row.appendChild(rm);
+      stepsBox.appendChild(row);
+    });
+  }
+  function numVal(id, def) {
+    var v = parseInt($(id).value, 10);
+    return isFinite(v) ? v : def;
+  }
+  function saveRule() {
+    var err = $('edErr');
+    err.textContent = '';
+    editing.name = $('edName').value;
+    var k = editing.triggerKind;
+    if (k === 'press' || k === 'double') {
+      if (editing.buttons.length !== 1) { err.textContent = t('errNeedButton1'); return; }
+    } else if (k === 'longpress') {
+      if (editing.buttons.length < 1) { err.textContent = t('errNeedButton1'); return; }
+    } else if (editing.buttons.length < 2) { err.textContent = t('errNeedButtons2'); return; }
+    if (editing.actionKind === 'keys' && editing.keys.length < 1) { err.textContent = t('errNeedKeys'); return; }
+    if (editing.actionKind === 'macro') {
+      if (!editing.steps.length || editing.steps.some(function (s) { return !s.keys.length; })) { err.textContent = t('errNeedStepKeys'); return; }
+    }
+    var trig = { kind: k, buttons: editing.buttons.slice() };
+    if (k === 'chord') trig.windowMs = numVal('edWindow', HC.DEFAULTS.chordWindowMs);
+    if (k === 'longpress') trig.holdMs = numVal('edHold', HC.DEFAULTS.holdMs);
+    if (k === 'double') trig.intervalMs = numVal('edInterval', HC.DEFAULTS.doubleIntervalMs);
+    if (k === 'sequence') trig.windowMs = numVal('edSeqWindow', HC.DEFAULTS.sequenceWindowMs);
+    var act = editing.actionKind === 'keys' ? { kind: 'keys', keys: editing.keys.slice() }
+      : editing.actionKind === 'macro' ? { kind: 'macro', steps: editing.steps.map(function (s) { return { keys: s.keys.slice(), delayMs: s.delayMs }; }) }
+      : { kind: 'none' };
+    var errors = [];
+    var rule = HC.normalizeRule({ id: editing.id || undefined, name: editing.name, enabled: editing.enabled, trigger: trig, action: act }, errors);
+    if (!rule) { err.textContent = errors.join(' / '); return; }
+    var profile = activeProfile();
+    var idx = -1;
+    for (var i = 0; i < profile.rules.length; i++) if (profile.rules[i].id === rule.id) idx = i;
+    if (idx >= 0) profile.rules[idx] = rule; else profile.rules.push(rule);
+    saveStore(); rebuildEngine(); renderRules(); closeEditor();
+  }
+
+  /* ---------------- learn from real input ---------------- */
+  var learn = { active: false, downs: [], order: [], downSet: {}, firstButton: null, startTime: 0, lastEvent: 0 };
+  function startLearn() {
+    learn = { active: true, downs: [], order: [], downSet: {}, firstButton: null, startTime: performance.now(), lastEvent: 0 };
+    $('learnBtn').textContent = t('learning');
+    $('learnBtn').classList.add('learn-active');
+    updateKindVisibility();
+  }
+  function stopLearn() {
+    if (!learn.active) return;
+    learn.active = false;
+    $('learnBtn').textContent = t('learn');
+    $('learnBtn').classList.remove('learn-active');
+    if (editing) updateKindVisibility();
+  }
+  function learnFeed(buttonId, type, time) {
+    if (type === 'down') {
+      if (!learn.firstButton) learn.firstButton = buttonId;
+      if (learn.downs.indexOf(buttonId) < 0) learn.downs.push(buttonId);
+      learn.order.push(buttonId);
+      learn.downSet[buttonId] = true;
+    } else {
+      delete learn.downSet[buttonId];
+    }
+    learn.lastEvent = time;
+  }
+  function learnTick(now) {
+    if (!learn.active) return;
+    var allUp = Object.keys(learn.downSet).length === 0;
+    if (learn.downs.length && allUp && learn.lastEvent && now - learn.lastEvent > 700) finishLearn();
+    else if (!learn.downs.length && now - learn.startTime > 15000) stopLearn();
+  }
+  function finishLearn() {
+    if (!editing) { stopLearn(); return; }
+    var k = editing.triggerKind;
+    if (k === 'chord') editing.buttons = learn.downs.slice(0, 10);
+    else if (k === 'sequence') editing.buttons = learn.order.slice(0, 16);
+    else editing.buttons = learn.firstButton ? [learn.firstButton] : [];
+    stopLearn();
+    renderChips(); renderPicker();
+  }
+
+  /* ---------------- key capture for actions ---------------- */
+  var capture = null; /* {target:'keys'|'step', index, mods:[], btn} */
+  function startCapture(target, index, btn) {
+    endCapture(null);
+    capture = { target: target, index: index, mods: [], btn: btn || $('captureKeysBtn') };
+    capture.btn.dataset.label = capture.btn.textContent;
+    capture.btn.textContent = t('capturing');
+  }
+  function isMod(tok) { return tok === 'Ctrl' || tok === 'Alt' || tok === 'Shift' || tok === 'Meta'; }
+  function keyTokenFromEvent(e) {
+    var k = e.key;
+    if (k === 'Control') return 'Ctrl';
+    if (k === ' ') return 'Space';
+    if (k === 'Escape') return 'Esc';
+    if (k && k.length === 1) return k.toUpperCase();
+    return k;
+  }
+  function captureKeyDown(e) {
+    e.preventDefault();
+    if (e.key === 'Escape') { endCapture(null); return; }
+    var tok = keyTokenFromEvent(e);
+    if (isMod(tok)) {
+      if (capture.mods.indexOf(tok) < 0) capture.mods.push(tok);
+      return;
+    }
+    var keys = [];
+    if (e.ctrlKey) keys.push('Ctrl');
+    if (e.altKey) keys.push('Alt');
+    if (e.shiftKey) keys.push('Shift');
+    if (e.metaKey) keys.push('Meta');
+    capture.mods.forEach(function (m) { if (keys.indexOf(m) < 0) keys.push(m); });
+    if (keys.indexOf(tok) < 0) keys.push(tok);
+    endCapture(keys);
+  }
+  function captureKeyUp(e) {
+    if (!capture) return;
+    if (capture.mods.length && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) {
+      endCapture(capture.mods.slice());
+    }
+  }
+  function endCapture(keys) {
+    if (!capture) return;
+    var c = capture;
+    capture = null;
+    if (c.btn && c.btn.dataset.label) c.btn.textContent = c.btn.dataset.label;
+    if (keys && keys.length && editing) {
+      if (c.target === 'keys') editing.keys = keys.slice(0, 8);
+      else if (editing.steps[c.index]) editing.steps[c.index].keys = keys.slice(0, 8);
+      renderActionArea();
+    }
+  }
+
+  /* ---------------- two-step confirm ---------------- */
+  function armConfirm(btn, fn) {
+    if (btn.dataset.armed) {
+      btn.dataset.armed = '';
+      btn.textContent = btn.dataset.label || btn.textContent;
+      fn();
+    } else {
+      btn.dataset.armed = '1';
+      btn.dataset.label = btn.textContent;
+      btn.textContent = t('confirmDelete');
+      setTimeout(function () {
+        if (btn.dataset.armed) { btn.dataset.armed = ''; btn.textContent = btn.dataset.label; }
+      }, 3000);
+    }
+  }
+
+  /* ---------------- i18n & boot ---------------- */
+  function applyI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.documentElement.lang = lang;
+    $('langSel').value = lang;
+  }
+  function boot() {
+    loadStore();
+    $('langSel').value = lang;
+    $('langSel').addEventListener('change', function () {
+      lang = $('langSel').value;
+      saveStore(); applyI18n(); renderPads(); renderRules();
+      if (editing) renderEditor();
+    });
+    applyI18n();
+    rebuildEngine();
+    renderPads();
+    renderRules();
+
+    $('clearLogBtn').addEventListener('click', function () { $('log').innerHTML = ''; });
+    $('addRuleBtn').addEventListener('click', function () { openEditor(null); });
+    $('profileSel').addEventListener('change', function () {
+      store.activeId = $('profileSel').value;
+      saveStore(); rebuildEngine(); renderRules(); closeEditor();
+    });
+    $('profileName').addEventListener('change', function () {
+      var p = activeProfile();
+      if (p && $('profileName').value.trim()) { p.name = $('profileName').value.trim(); saveStore(); renderRules(); }
+    });
+    $('newProfileBtn').addEventListener('click', function () {
+      var p = { id: uid('profile'), name: t('newProfileName'), rules: [] };
+      store.profiles.push(p); store.activeId = p.id;
+      saveStore(); rebuildEngine(); renderRules(); closeEditor();
+    });
+    $('dupProfileBtn').addEventListener('click', function () {
+      var src = activeProfile(); if (!src) return;
+      var copy = JSON.parse(JSON.stringify(src));
+      copy.id = uid('profile');
+      copy.name = src.name + t('copySuffix');
+      copy.rules.forEach(function (r) { r.id = uid('rule'); });
+      store.profiles.push(copy); store.activeId = copy.id;
+      saveStore(); rebuildEngine(); renderRules(); closeEditor();
+    });
+    $('delProfileBtn').addEventListener('click', function () {
+      if (store.profiles.length <= 1) return;
+      armConfirm($('delProfileBtn'), function () {
+        store.profiles = store.profiles.filter(function (p) { return p.id !== store.activeId; });
+        store.activeId = store.profiles[0].id;
+        saveStore(); rebuildEngine(); renderRules(); closeEditor();
+      });
+    });
+    $('exportBtn').addEventListener('click', function () {
+      var p = activeProfile(); if (!p) return;
+      var blob = new Blob([HC.exportProfile(p)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'hands-profile-' + p.name.replace(/[^\w\-]+/g, '_') + '.json';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    });
+    $('importBtn').addEventListener('click', function () { $('importFile').click(); });
+    $('importFile').addEventListener('change', function () {
+      var file = $('importFile').files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var res = HC.importProfile(String(reader.result));
+        if (res.profile) {
+          res.profile.id = uid('profile');
+          store.profiles.push(res.profile);
+          store.activeId = res.profile.id;
+          saveStore(); rebuildEngine(); renderRules(); closeEditor();
+          $('profileErr').textContent = t('imported');
+        } else {
+          $('profileErr').textContent = t('importFailed') + res.errors.join(' / ');
+        }
+        $('importFile').value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    $('edName').addEventListener('input', function () { if (editing) editing.name = $('edName').value; });
+    $('edKind').addEventListener('change', function () {
+      if (!editing) return;
+      editing.triggerKind = $('edKind').value;
+      stopLearn();
+      updateKindVisibility(); renderChips(); renderPicker();
+    });
+    $('learnBtn').addEventListener('click', function () {
+      if (learn.active) stopLearn(); else startLearn();
+    });
+    $('edActionKind').addEventListener('change', function () {
+      if (!editing) return;
+      editing.actionKind = $('edActionKind').value;
+      updateKindVisibility(); renderActionArea();
+    });
+    $('captureKeysBtn').addEventListener('click', function () { startCapture('keys', -1, $('captureKeysBtn')); });
+    $('addStepBtn').addEventListener('click', function () {
+      if (!editing) return;
+      editing.steps.push({ keys: [], delayMs: HC.DEFAULTS.macroDelayMs });
+      renderActionArea();
+    });
+    $('saveRuleBtn').addEventListener('click', saveRule);
+    $('cancelRuleBtn').addEventListener('click', closeEditor);
+    $('deleteRuleBtn').addEventListener('click', function () {
+      if (!editing || !editing.id) { closeEditor(); return; }
+      armConfirm($('deleteRuleBtn'), function () {
+        var p = activeProfile();
+        p.rules = p.rules.filter(function (r) { return r.id !== editing.id; });
+        saveStore(); rebuildEngine(); renderRules(); closeEditor();
+      });
+    });
+
+    requestAnimationFrame(poll);
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

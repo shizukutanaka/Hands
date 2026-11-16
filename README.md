@@ -1,0 +1,111 @@
+# Hands — Combo Studio
+
+**Combos for controllers that are short on buttons.**
+
+Hands is a configuration studio for button-poor controllers such as the
+Meta Quest 3 Touch controllers. Like a keyboard customization tool, it lets
+you assign key presses and macros to **button combinations** — simultaneous
+presses, long presses, double presses and ordered sequences — far beyond
+the handful of physical buttons the device has. You design the bindings
+against your real controller, watch them fire live, and keep the result as
+a portable profile file.
+
+日本語: ボタンの少ないコントローラ（Quest 3 の Touch コントローラ等）のための
+「組み合わせ設定スタジオ」です。同時押し・長押し・二度押し・順番押しに
+キー入力やマクロを割り当て、実機入力でその場で発火を確認できます。
+設定は端末内だけに保存され、JSON で持ち運べます。
+
+![Hands main view](docs/screenshot-main.png)
+
+## Open it
+
+No install, no build, no account. Open `index.html` in a browser
+(Chrome / Edge recommended for the Gamepad API), or serve the folder with
+any static file server. Everything runs locally; the page makes no network
+requests at all.
+
+## What you can do
+
+- **Live device monitor** — every connected gamepad appears with its
+  buttons lighting up as you press them, including analog trigger values.
+  Button-name presets are included for Quest 3 Touch (left/right) and
+  standard gamepads, and you can switch the naming per device.
+- **Five trigger kinds**
+  - *Press* — a plain button press.
+  - *Chord* — several buttons together. The simultaneity window is
+    adjustable; set it to 0 for modifier style (hold one button, tap
+    another — like Ctrl+C).
+  - *Long press* — hold a button (or a combination) for a set time.
+  - *Double press* — tap the same button twice within an interval.
+  - *Sequence* — press buttons in a set order, each step within a time
+    limit.
+- **Actions** — a key or key combination (e.g. `Ctrl+Shift+P`), or a
+  *macro*: an ordered list of key steps with per-step delays.
+- **Learn mode** — instead of picking buttons from a list, press the
+  actual combination on your controller and Hands records it. Action keys
+  can likewise be captured from your physical keyboard.
+- **Profiles** — create, duplicate, rename and switch profiles. Stored in
+  the browser on this device only; export/import as JSON to move them
+  between machines.
+- **No hardware?** Eight keyboard keys (A S D F J K L ;) act as test
+  buttons, and the built-in starter profile demonstrates every trigger
+  kind with them. You can evaluate the whole studio before connecting
+  anything.
+- **Interface languages**: Japanese and English.
+
+## Honest scope — what Hands does *not* do
+
+A web page **cannot send keystrokes to other applications**. Browsers
+deliberately forbid it. So in this web version, fired bindings are shown
+in the built-in test-output panel (a simulation), and the real deliverable
+is the **verified profile**: the bindings you designed and proved against
+your own inputs.
+
+Delivering those keys to games and apps requires a native companion that
+reads the same profile files and injects input at OS level. That layer is
+designed but not yet built; the design memo — platform APIs, pitfalls,
+and security rules — is in [docs/INJECTION.md](docs/INJECTION.md). The
+profile format and the detection semantics are shared, so nothing you
+configure today is throwaway work.
+
+## Detection semantics (the exact rules)
+
+All boundaries are inclusive; the engine is deterministic and test-driven.
+
+| Trigger | Fires when |
+|---|---|
+| Press | the button's press edge occurs |
+| Chord | all members are down and (window = 0, or the spread between first and last member press ≤ window). Latches until a member is released |
+| Long press | all members have been continuously down for the hold time, counted from when the set completed. Releasing early cancels |
+| Double press | the second press edge lands within the interval of the first (press-to-press). After firing, the next press starts a new pair |
+| Sequence | members are pressed in order, each step within the per-step window of the previous matched step. A wrong button resets progress (pressing the first member restarts) |
+
+Rules are independent: one input can fire several rules, and every firing
+is shown in the output log.
+
+## Privacy
+
+Settings live in your browser's local storage on your device. Hands has
+no server, no analytics and no network access — the page's Content
+Security Policy forbids it (`connect-src 'none'`). See
+[PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
+
+## Development
+
+Zero dependencies; the whole app is the single file `index.html`
+(the detection engine is the delimited `HANDS CORE` section inside it).
+
+```sh
+# Core engine tests (plain Node, no install)
+node tests/run-tests.js
+
+# UI test in Electron (needs an Electron binary + Xvfb on Linux)
+xvfb-run -a <electron-binary> tests/ui-main.js --no-sandbox
+```
+
+CI runs the core tests plus checks that the app stays single-file and
+free of external references.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
