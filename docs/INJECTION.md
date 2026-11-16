@@ -1,4 +1,33 @@
-# Design memo: the native injection layer (future work)
+# Design memo: the native injection layer
+
+## Status (updated)
+
+**Windows: minimal version implemented** in
+[`companion/`](../companion/README.md) — XInput polling in, `SendInput`
+with scan codes out, profiles validated with this memo's rules, built by
+the C# compiler that ships with Windows (no installs). The detection
+engine is a port of HANDS CORE whose parity is proven by generated test
+vectors, not by eyeballing. It is **not yet verified on a real Windows
+machine**; the check procedure lives in the companion's README.
+Linux and macOS remain design-only, as described below.
+
+Deviations and limits of the minimal version, recorded honestly:
+
+- Input is XInput only (no Raw Input / HID path yet), so the pad is
+  read with the standard-mapping layout; the Guide button (index 16)
+  cannot be read through `XInputGetState` and is never reported.
+- The studio's keyboard test buttons (`k0`–`k7`) are a browser-only
+  fallback and are not fed by the companion.
+- No target-app filtering yet: keys go to the focused window. A refused
+  send *is* surfaced, per the pitfall below — the log names the
+  foreground window's title when `SendInput` accepts fewer events than
+  requested.
+- The first-run injection test exists as an explicit
+  `--selftest-send` flag (one harmless Shift tap) rather than an
+  automatic first-run flow.
+- A panic chord (Ctrl+Alt+F12), Ctrl+C, or closing the window stops it.
+- Punctuation keys follow the US layout (the studio stores produced
+  characters; scan codes are layout territory, as noted below).
 
 Hands (the web app in this repository) is the **configuration studio**: it
 reads real controller input, lets you design combo bindings, verifies them

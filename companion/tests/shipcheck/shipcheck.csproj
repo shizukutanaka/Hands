@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compile check for the shipped sources (including the Windows-only
+       entry point and P/Invoke layers) under LangVersion 5, matching the
+       in-box .NET Framework csc.exe that Build.bat uses. Build only;
+       running it is not part of the check (it would talk to Windows APIs).
+       No package references: restore works fully offline. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>5</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>hands-companion</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\*.cs" />
+  </ItemGroup>
+</Project>

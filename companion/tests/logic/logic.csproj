@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Logic tests for the companion. The shipped program is built by
+       Build.bat with the .NET Framework compiler that ships with Windows
+       (C# 5), so this project pins LangVersion 5: passing here proves the
+       exact shipped sources are C# 5-compatible and behave correctly.
+       No package references: restore works fully offline. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>5</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>companion-logic-tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\Json.cs" />
+    <Compile Include="..\..\src\Profile.cs" />
+    <Compile Include="..\..\src\Engine.cs" />
+    <Compile Include="..\..\src\KeyMap.cs" />
+    <Compile Include="..\..\src\Planner.cs" />
+    <Compile Include="Tests.cs" />
+  </ItemGroup>
+</Project>
