@@ -14,3 +14,8 @@ __pycache__/
 .env
 .env.local
 *.secret
+# companion build outputs (built by companion/Build.bat)
+bin/
+obj/
+companion/hands-companion.exe
+companion/hands-companion.log

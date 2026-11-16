@@ -62,11 +62,18 @@ is the **verified profile**: the bindings you designed and proved against
 your own inputs.
 
 Delivering those keys to games and apps requires a native companion that
-reads the same profile files and injects input at OS level. That layer is
-designed but not yet built; the design memo — platform APIs, pitfalls,
-and security rules — is in [docs/INJECTION.md](docs/INJECTION.md). The
-profile format and the detection semantics are shared, so nothing you
-configure today is throwaway work.
+reads the same profile files and injects input at OS level. A **minimal
+Windows version now exists** in [companion/](companion/README.md): it
+polls XInput controllers, runs the same detection engine (parity with
+this page's core is proven by generated test vectors), and sends keys
+with `SendInput`. It builds with the compiler that ships with Windows —
+nothing to install. It has **not yet been verified on a real Windows
+machine**; the check procedure is in its README. Linux and macOS
+companions remain design-only; the design memo — platform APIs,
+pitfalls, and security rules — is in
+[docs/INJECTION.md](docs/INJECTION.md). The profile format and the
+detection semantics are shared, so nothing you configure today is
+throwaway work.
 
 ## Detection semantics (the exact rules)
 
@@ -104,7 +111,9 @@ xvfb-run -a <electron-binary> tests/ui-main.js --no-sandbox
 ```
 
 CI runs the core tests plus checks that the app stays single-file and
-free of external references.
+free of external references. The Windows companion in `companion/` has
+its own tests (logic + parity vectors against this core) and its own CI
+workflow; see its README.
 
 ## License
 

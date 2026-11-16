@@ -15,6 +15,9 @@ Hands is local-first software.
   in memory to detect combinations and is not logged or persisted. The
   on-screen output log exists only until you clear it or close the page.
 
-If a future native companion is built (see `docs/INJECTION.md`), the same
-rules apply to it: profiles are files the user owns, and the creator of
-this software holds no user data.
+The native Windows companion in `companion/` (see `docs/INJECTION.md`)
+follows the same rules: profiles are files the user owns, it makes no
+network requests, and the creator of this software holds no user data.
+Raw controller state is never recorded there either; its local log
+contains only the bindings that fired, and the file sits next to the
+program on your own device, yours to delete.

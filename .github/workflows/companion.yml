@@ -1,0 +1,19 @@
+name: Companion (Windows)
+
+on:
+  push:
+    branches: [main]
+    paths: ['companion/**', '.github/workflows/companion.yml']
+  pull_request:
+    paths: ['companion/**', '.github/workflows/companion.yml']
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with the in-box .NET Framework compiler
+        shell: cmd
+        run: companion\Build.bat nopause
+      - name: Logic tests and JS-engine parity vectors
+        run: dotnet run --project companion/tests/logic -- companion/tests/vectors.json companion/sample-profile.json

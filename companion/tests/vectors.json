@@ -1,0 +1,1975 @@
+{
+  "generatedBy": "companion/tools/gen-vectors.js",
+  "source": "HANDS CORE in index.html (HC 1.0.0)",
+  "scenarios": [
+    {
+      "name": "press-basic",
+      "rules": [
+        {
+          "id": "p1",
+          "name": "p1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          10
+        ],
+        [
+          "down",
+          "A",
+          20
+        ],
+        [
+          "down",
+          "B",
+          30
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 20,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "press-dup-and-stray",
+      "rules": [
+        {
+          "id": "p1",
+          "name": "p1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "A",
+          50
+        ],
+        [
+          "up",
+          "ZZ",
+          60
+        ],
+        [
+          "up",
+          "A",
+          70
+        ],
+        [
+          "down",
+          "A",
+          80
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 80,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chord-window-inclusive",
+      "rules": [
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "windowMs": 100
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          100
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 100,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chord-window-exclusive",
+      "rules": [
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "windowMs": 100
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          101
+        ],
+        [
+          "up",
+          "A",
+          150
+        ],
+        [
+          "up",
+          "B",
+          160
+        ],
+        [
+          "down",
+          "A",
+          200
+        ],
+        [
+          "down",
+          "B",
+          250
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 250,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chord-modifier-style",
+      "rules": [
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "windowMs": 0
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          5000
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 5000,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chord-latch-and-rearm",
+      "rules": [
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "windowMs": 100
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          50
+        ],
+        [
+          "down",
+          "B",
+          60
+        ],
+        [
+          "up",
+          "A",
+          120
+        ],
+        [
+          "down",
+          "A",
+          140
+        ],
+        [
+          "down",
+          "A",
+          160
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 50,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 140,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chord-three-members",
+      "rules": [
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 100
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          40
+        ],
+        [
+          "down",
+          "C",
+          90
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 90,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "chord-member-released-early",
+      "rules": [
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 100
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          30
+        ],
+        [
+          "down",
+          "B",
+          40
+        ],
+        [
+          "down",
+          "C",
+          90
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": []
+    },
+    {
+      "name": "longpress-threshold",
+      "rules": [
+        {
+          "id": "l1",
+          "name": "l1",
+          "enabled": true,
+          "trigger": {
+            "kind": "longpress",
+            "buttons": [
+              "A"
+            ],
+            "holdMs": 500
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "advance",
+          499
+        ],
+        [
+          "advance",
+          500
+        ],
+        [
+          "advance",
+          2000
+        ],
+        [
+          "up",
+          "A",
+          2100
+        ],
+        [
+          "down",
+          "A",
+          3000
+        ],
+        [
+          "advance",
+          3500
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "l1",
+          "triggerKind": "longpress",
+          "time": 500,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "l1",
+          "triggerKind": "longpress",
+          "time": 3500,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "longpress-early-release-cancels",
+      "rules": [
+        {
+          "id": "l1",
+          "name": "l1",
+          "enabled": true,
+          "trigger": {
+            "kind": "longpress",
+            "buttons": [
+              "A"
+            ],
+            "holdMs": 500
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          499
+        ],
+        [
+          "advance",
+          5000
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": []
+    },
+    {
+      "name": "longpress-release-at-threshold",
+      "rules": [
+        {
+          "id": "l1",
+          "name": "l1",
+          "enabled": true,
+          "trigger": {
+            "kind": "longpress",
+            "buttons": [
+              "A"
+            ],
+            "holdMs": 500
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          500
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "l1",
+          "triggerKind": "longpress",
+          "time": 500,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "longpress-chord-form",
+      "rules": [
+        {
+          "id": "l1",
+          "name": "l1",
+          "enabled": true,
+          "trigger": {
+            "kind": "longpress",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "holdMs": 400
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          100
+        ],
+        [
+          "advance",
+          499
+        ],
+        [
+          "advance",
+          500
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "l1",
+          "triggerKind": "longpress",
+          "time": 500,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "longpress-chord-repress-restarts",
+      "rules": [
+        {
+          "id": "l1",
+          "name": "l1",
+          "enabled": true,
+          "trigger": {
+            "kind": "longpress",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "holdMs": 400
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          100
+        ],
+        [
+          "up",
+          "B",
+          450
+        ],
+        [
+          "down",
+          "B",
+          600
+        ],
+        [
+          "advance",
+          999
+        ],
+        [
+          "advance",
+          1000
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "l1",
+          "triggerKind": "longpress",
+          "time": 1000,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "double-inclusive",
+      "rules": [
+        {
+          "id": "d1",
+          "name": "d1",
+          "enabled": true,
+          "trigger": {
+            "kind": "double",
+            "buttons": [
+              "A"
+            ],
+            "intervalMs": 350
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          50
+        ],
+        [
+          "down",
+          "A",
+          350
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "d1",
+          "triggerKind": "double",
+          "time": 350,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "double-exclusive-then-new-pair",
+      "rules": [
+        {
+          "id": "d1",
+          "name": "d1",
+          "enabled": true,
+          "trigger": {
+            "kind": "double",
+            "buttons": [
+              "A"
+            ],
+            "intervalMs": 350
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          50
+        ],
+        [
+          "down",
+          "A",
+          351
+        ],
+        [
+          "up",
+          "A",
+          400
+        ],
+        [
+          "down",
+          "A",
+          600
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "d1",
+          "triggerKind": "double",
+          "time": 600,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "double-after-fire-new-pair",
+      "rules": [
+        {
+          "id": "d1",
+          "name": "d1",
+          "enabled": true,
+          "trigger": {
+            "kind": "double",
+            "buttons": [
+              "A"
+            ],
+            "intervalMs": 350
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          40
+        ],
+        [
+          "down",
+          "A",
+          100
+        ],
+        [
+          "up",
+          "A",
+          140
+        ],
+        [
+          "down",
+          "A",
+          200
+        ],
+        [
+          "up",
+          "A",
+          240
+        ],
+        [
+          "down",
+          "A",
+          300
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "d1",
+          "triggerKind": "double",
+          "time": 100,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "d1",
+          "triggerKind": "double",
+          "time": 300,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "double-dup-down-ignored",
+      "rules": [
+        {
+          "id": "d1",
+          "name": "d1",
+          "enabled": true,
+          "trigger": {
+            "kind": "double",
+            "buttons": [
+              "A"
+            ],
+            "intervalMs": 350
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "A",
+          100
+        ],
+        [
+          "up",
+          "A",
+          150
+        ],
+        [
+          "down",
+          "A",
+          400
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": []
+    },
+    {
+      "name": "sequence-basic",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          100
+        ],
+        [
+          "down",
+          "C",
+          200
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "s1",
+          "triggerKind": "sequence",
+          "time": 200,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "sequence-boundary-inclusive",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          800
+        ],
+        [
+          "down",
+          "C",
+          1600
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "s1",
+          "triggerKind": "sequence",
+          "time": 1600,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "sequence-gap-breaks",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          801
+        ],
+        [
+          "down",
+          "C",
+          900
+        ],
+        [
+          "advance",
+          5000
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": []
+    },
+    {
+      "name": "sequence-wrong-button-resets",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "X",
+          100
+        ],
+        [
+          "down",
+          "B",
+          200
+        ],
+        [
+          "down",
+          "C",
+          300
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": []
+    },
+    {
+      "name": "sequence-first-member-restarts",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          50
+        ],
+        [
+          "down",
+          "A",
+          100
+        ],
+        [
+          "down",
+          "B",
+          200
+        ],
+        [
+          "down",
+          "C",
+          300
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "s1",
+          "triggerKind": "sequence",
+          "time": 300,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "sequence-progress-expires",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "C"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "advance",
+          801
+        ],
+        [
+          "down",
+          "B",
+          900
+        ],
+        [
+          "down",
+          "C",
+          1000
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": []
+    },
+    {
+      "name": "sequence-repeated-member",
+      "rules": [
+        {
+          "id": "s1",
+          "name": "s1",
+          "enabled": true,
+          "trigger": {
+            "kind": "sequence",
+            "buttons": [
+              "A",
+              "B",
+              "A"
+            ],
+            "windowMs": 800
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          50
+        ],
+        [
+          "down",
+          "B",
+          100
+        ],
+        [
+          "up",
+          "B",
+          150
+        ],
+        [
+          "down",
+          "A",
+          200
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "s1",
+          "triggerKind": "sequence",
+          "time": 200,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "action-macro-passthrough",
+      "rules": [
+        {
+          "id": "m1",
+          "name": "m1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "macro",
+            "steps": [
+              {
+                "keys": [
+                  "Ctrl",
+                  "S"
+                ],
+                "delayMs": 50
+              },
+              {
+                "keys": [
+                  "Enter"
+                ],
+                "delayMs": 150
+              }
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "m1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "macro",
+            "steps": [
+              {
+                "keys": [
+                  "Ctrl",
+                  "S"
+                ],
+                "delayMs": 50
+              },
+              {
+                "keys": [
+                  "Enter"
+                ],
+                "delayMs": 150
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "action-none",
+      "rules": [
+        {
+          "id": "n1",
+          "name": "n1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "none"
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "up",
+          "A",
+          10
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "n1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "none"
+          }
+        }
+      ]
+    },
+    {
+      "name": "action-keys-multi",
+      "rules": [
+        {
+          "id": "k1",
+          "name": "k1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "Shift",
+              "P"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "k1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "Shift",
+              "P"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "multi-rule-order",
+      "rules": [
+        {
+          "id": "p1",
+          "name": "p1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "id": "c1",
+          "name": "c1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "A",
+              "B"
+            ],
+            "windowMs": 100
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ],
+        [
+          "down",
+          "B",
+          50
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "c1",
+          "triggerKind": "chord",
+          "time": 50,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "disabled-rule-never-fires",
+      "rules": [
+        {
+          "id": "off",
+          "name": "off",
+          "enabled": false,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "id": "p1",
+          "name": "p1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "invalid-rule-reported-valid-still-works",
+      "rules": [
+        {
+          "bogus": true
+        },
+        {
+          "id": "p1",
+          "name": "p1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          0
+        ]
+      ],
+      "expectErrors": 1,
+      "expectFired": [
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 0,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "gamepad-ids-chord",
+      "rules": [
+        {
+          "id": "g1",
+          "name": "g1",
+          "enabled": true,
+          "trigger": {
+            "kind": "chord",
+            "buttons": [
+              "g0b4",
+              "g0b5"
+            ],
+            "windowMs": 0
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Esc"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "g0b4",
+          0
+        ],
+        [
+          "down",
+          "g0b5",
+          1200
+        ],
+        [
+          "up",
+          "g0b4",
+          1300
+        ],
+        [
+          "down",
+          "g0b4",
+          1400
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "g1",
+          "triggerKind": "chord",
+          "time": 1200,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Esc"
+            ]
+          }
+        },
+        {
+          "ruleId": "g1",
+          "triggerKind": "chord",
+          "time": 1400,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Esc"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "time-clamped",
+      "rules": [
+        {
+          "id": "p1",
+          "name": "p1",
+          "enabled": true,
+          "trigger": {
+            "kind": "press",
+            "buttons": [
+              "A"
+            ]
+          },
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        [
+          "down",
+          "A",
+          100
+        ],
+        [
+          "up",
+          "A",
+          90
+        ],
+        [
+          "down",
+          "A",
+          50
+        ]
+      ],
+      "expectErrors": 0,
+      "expectFired": [
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 100,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        },
+        {
+          "ruleId": "p1",
+          "triggerKind": "press",
+          "time": 100,
+          "action": {
+            "kind": "keys",
+            "keys": [
+              "Ctrl",
+              "C"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
