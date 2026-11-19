@@ -144,6 +144,10 @@
     <div>
       <section class="panel" id="devicesPanel">
         <h2><span data-i18n="devices">デバイス</span><span class="sub" data-i18n="devicesSub">Gamepad API で実入力を読みます</span></h2>
+        <div id="xrBox" style="display:none">
+          <button id="xrBtn"></button>
+          <div class="hint" data-i18n="xrHint"></div>
+        </div>
         <div id="padList"></div>
         <div class="pad" id="kbPad">
           <div class="pad-head">
@@ -823,7 +827,9 @@
       shareCopied: '共有リンクをコピーしました。', sharePrompt: '共有リンクです。コピーして使ってください:',
       shareFailed: '共有リンクを作れませんでした: ', shareLoadFailed: '共有リンクを読み込めませんでした: ',
       logFire: '発火', logMacroStep: 'マクロ手順', profile: 'プロファイル',
-      delay: '間隔 (ms)', remove: '削除', capture: 'キー指定', step: '手順'
+      delay: '間隔 (ms)', remove: '削除', capture: 'キー指定', step: '手順',
+      xrStart: 'VR に入って読む（WebXR）', xrStop: 'VR を終える', xrFailed: 'VR を開始できませんでした: ',
+      xrHint: 'Quest の Touch コントローラはブラウザの通常のゲームパッド一覧には出ません。VR に入っている間だけ WebXR で読み取ります（Quest ブラウザ、または PC VR 対応の Chrome / Edge）。VR 中は割り当てが発火すると視界が緑に光り、VR を終えるとここでログと結果を確認できます。'
     },
     en: {
       tagline: 'Combos for controllers that are short on buttons.',
@@ -861,7 +867,9 @@
       shareCopied: 'Share link copied.', sharePrompt: 'Here is your share link — copy it:',
       shareFailed: 'Could not create a share link: ', shareLoadFailed: 'Could not load the shared profile: ',
       logFire: 'FIRED', logMacroStep: 'macro step', profile: 'Profile',
-      delay: 'delay (ms)', remove: 'Remove', capture: 'Capture', step: 'Step'
+      delay: 'delay (ms)', remove: 'Remove', capture: 'Capture', step: 'Step',
+      xrStart: 'Enter VR to read (WebXR)', xrStop: 'Exit VR', xrFailed: 'Could not start VR: ',
+      xrHint: 'Quest Touch controllers never appear in the browser\'s regular gamepad list. While you are in VR they are read through WebXR (Quest Browser, or Chrome / Edge with PC VR). In VR the view flashes green whenever a binding fires; exit VR to see the log and results here.'
     }
   };
   var lang = 'ja';
@@ -956,10 +964,10 @@
 
   /* ---------------- button identity & names ---------------- */
   var knownPads = {}; /* index -> {id, mapping, presetId, connected} */
-  function registerPad(gp) {
-    var cur = knownPads[gp.index];
-    var presetId = (store.padPresets[gp.id]) || (cur && cur.presetId) || HC.guessPresetId(gp.id, gp.mapping);
-    knownPads[gp.index] = { id: gp.id, mapping: gp.mapping, presetId: presetId, connected: true };
+  function registerPad(index, id, mapping) {
+    var cur = knownPads[index];
+    var presetId = (store.padPresets[id]) || (cur && cur.presetId) || HC.guessPresetId(id, mapping);
+    knownPads[index] = { id: id, mapping: mapping, presetId: presetId, connected: true };
   }
   function buttonName(id) {
     if (typeof id !== 'string') return String(id);
@@ -1022,33 +1030,117 @@
     for (var i = 0; i < fired.length; i++) handleFired(fired[i]);
   }
 
+  function feedPad(index, id, gp, now) {
+    if (!knownPads[index] || !knownPads[index].connected) { registerPad(index, id, gp.mapping); renderPads(); }
+    var buttons = Array.prototype.slice.call(gp.buttons);
+    lastSnapshot[index] = {
+      buttons: buttons.map(function (b) { return { pressed: !!b.pressed, value: b.value }; }),
+      axes: Array.prototype.slice.call(gp.axes)
+    };
+    var prev = prevPadButtons[index] || [];
+    for (var bi = 0; bi < buttons.length; bi++) {
+      var down = !!buttons[bi].pressed;
+      if (down !== !!prev[bi]) dispatchButtonEvent('g' + index + 'b' + bi, down ? 'down' : 'up', now);
+    }
+    prevPadButtons[index] = buttons.map(function (b) { return !!b.pressed; });
+    updatePadVisual(index);
+  }
+  function tick(now) {
+    if (engine) {
+      var fired = engine.advanceTo(now);
+      for (var j = 0; j < fired.length; j++) handleFired(fired[j]);
+    }
+    learnTick(now);
+  }
+
   function poll() {
     var now = performance.now();
     if (navigator.getGamepads) {
       var pads = navigator.getGamepads();
       for (var i = 0; i < pads.length; i++) {
         var gp = pads[i];
-        if (!gp) continue;
-        if (!knownPads[gp.index] || !knownPads[gp.index].connected) { registerPad(gp); renderPads(); }
-        lastSnapshot[gp.index] = {
-          buttons: gp.buttons.map(function (b) { return { pressed: !!b.pressed, value: b.value }; }),
-          axes: Array.prototype.slice.call(gp.axes)
-        };
-        var prev = prevPadButtons[gp.index] || [];
-        for (var bi = 0; bi < gp.buttons.length; bi++) {
-          var down = !!gp.buttons[bi].pressed;
-          if (down !== !!prev[bi]) dispatchButtonEvent('g' + gp.index + 'b' + bi, down ? 'down' : 'up', now);
-        }
-        prevPadButtons[gp.index] = gp.buttons.map(function (b) { return !!b.pressed; });
-        updatePadVisual(gp.index);
+        if (gp) feedPad(gp.index, gp.id, gp, now);
       }
     }
-    if (engine) {
-      var fired = engine.advanceTo(now);
-      for (var j = 0; j < fired.length; j++) handleFired(fired[j]);
-    }
-    learnTick(now);
+    tick(now);
     requestAnimationFrame(poll);
+  }
+
+  /* ---------------- WebXR input ----------------
+     XR controllers (Quest Touch) are never listed by navigator.getGamepads()
+     (WebXR Gamepads Module, section 3.1); they exist only as the input sources
+     of an immersive session. Each hand is fed as a fixed pad index so rules
+     bound to it stay valid across sessions. */
+  var XR_PADS = { left: 8, right: 9 };
+  var xr = null; /* {session, gl, flashUntil} */
+  function releasePad(index, now) {
+    var prev = prevPadButtons[index] || [];
+    for (var bi = 0; bi < prev.length; bi++) {
+      if (prev[bi]) dispatchButtonEvent('g' + index + 'b' + bi, 'up', now);
+    }
+    prevPadButtons[index] = [];
+    if (knownPads[index]) knownPads[index].connected = false;
+  }
+  function xrFrame(time, frame) {
+    if (!xr || frame.session !== xr.session) return;
+    var now = performance.now();
+    var seen = {};
+    var sources = xr.session.inputSources || [];
+    for (var i = 0; i < sources.length; i++) {
+      var src = sources[i];
+      var idx = XR_PADS[src.handedness];
+      if (idx === undefined || !src.gamepad) continue;
+      seen[idx] = true;
+      feedPad(idx, 'WebXR ' + src.handedness, src.gamepad, now);
+    }
+    var gone = false;
+    Object.keys(XR_PADS).forEach(function (hand) {
+      var idx = XR_PADS[hand];
+      if (!seen[idx] && knownPads[idx] && knownPads[idx].connected) { releasePad(idx, now); gone = true; }
+    });
+    if (gone) renderPads();
+    tick(now);
+    var gl = xr.gl, layer = xr.session.renderState.baseLayer;
+    var hit = now < xr.flashUntil;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+    gl.clearColor(hit ? 0.1 : 0.04, hit ? 0.7 : 0.05, hit ? 0.3 : 0.08, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    xr.session.requestAnimationFrame(xrFrame);
+  }
+  function endXR() {
+    if (!xr) return;
+    var now = performance.now();
+    Object.keys(XR_PADS).forEach(function (hand) {
+      var idx = XR_PADS[hand];
+      if (knownPads[idx] && knownPads[idx].connected) releasePad(idx, now);
+    });
+    xr = null;
+    renderPads(); updateXRButton();
+  }
+  function startXR() {
+    var gl = document.createElement('canvas').getContext('webgl', { xrCompatible: true });
+    if (!gl) { $('profileErr').textContent = t('xrFailed') + 'WebGL'; return; }
+    navigator.xr.requestSession('immersive-vr').then(function (session) {
+      xr = { session: session, gl: gl, flashUntil: 0 };
+      session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+      session.addEventListener('end', endXR);
+      session.requestAnimationFrame(xrFrame);
+      updateXRButton();
+    }, function (e) {
+      $('profileErr').textContent = t('xrFailed') + ((e && e.message) || e);
+    });
+  }
+  function updateXRButton() {
+    $('xrBtn').textContent = t(xr ? 'xrStop' : 'xrStart');
+  }
+  function setupXR() {
+    if (!navigator.xr || !navigator.xr.isSessionSupported) return;
+    navigator.xr.isSessionSupported('immersive-vr').then(function (ok) {
+      if (ok) $('xrBox').style.display = '';
+    }, function () { /* unsupported: keep hidden */ });
+    $('xrBtn').addEventListener('click', function () {
+      if (xr) xr.session.end(); else startXR();
+    });
   }
 
   function updatePadVisual(index) {
@@ -1086,7 +1178,7 @@
   });
 
   window.addEventListener('gamepadconnected', function (e) {
-    registerPad(e.gamepad);
+    registerPad(e.gamepad.index, e.gamepad.id, e.gamepad.mapping);
     renderPads();
   });
   window.addEventListener('gamepaddisconnected', function (e) {
@@ -1194,6 +1286,7 @@
     log.scrollTop = log.scrollHeight;
   }
   function handleFired(f) {
+    if (xr) xr.flashUntil = performance.now() + 250;
     var card = document.querySelector('[data-rule-id="' + f.ruleId + '"]');
     if (card) {
       card.classList.add('flash');
@@ -1592,6 +1685,7 @@
     });
     document.documentElement.lang = lang;
     $('langSel').value = lang;
+    updateXRButton();
   }
   function boot() {
     loadStore();
@@ -1718,6 +1812,7 @@
     });
 
     consumeShareLink();
+    setupXR();
 
     requestAnimationFrame(poll);
   }
