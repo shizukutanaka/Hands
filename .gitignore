@@ -19,3 +19,5 @@ bin/
 obj/
 companion/hands-companion.exe
 companion/hands-companion.log
+# desktop build output
+dist/

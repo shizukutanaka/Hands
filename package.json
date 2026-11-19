@@ -1,0 +1,45 @@
+{
+  "name": "hands",
+  "productName": "Hands",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hands — Combo Studio: combos for controllers that are short on buttons",
+  "author": "shizukutanaka",
+  "license": "MIT",
+  "main": "desktop/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/run-tests.js",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.11.5",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "io.github.shizukutanaka.hands",
+    "productName": "Hands",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "desktop/main.js",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "mac": {
+      "target": "zip",
+      "category": "public.app-category.utilities",
+      "identity": null
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    }
+  }
+}

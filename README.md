@@ -17,12 +17,42 @@ a portable profile file.
 
 ![Hands main view](docs/screenshot-main.png)
 
-## Open it
+## Get it — the desktop app (official form)
 
-No install, no build, no account. Open `index.html` in a browser
-(Chrome / Edge recommended for the Gamepad API), or serve the folder with
-any static file server. Everything runs locally; the page makes no network
-requests at all.
+Hands is distributed as **desktop software**. The desktop app is the
+official, supported form: download the build for your OS from the
+[Releases](https://github.com/shizukutanaka/Hands/releases) page.
+
+| OS | File | How to run |
+|---|---|---|
+| Windows | `Hands-<version>-win-x64.exe` (portable) | Run the exe; no installer |
+| macOS | `Hands-<version>-mac-<arch>.zip` | Unzip and open `Hands.app` |
+| Linux | `Hands-<version>-linux-x86_64.AppImage` | `chmod +x` it, then run it |
+
+**The builds are not code-signed.** Windows SmartScreen ("Windows
+protected your PC") and macOS Gatekeeper ("cannot be opened because the
+developer cannot be verified") may warn you or block the first launch.
+On Windows choose *More info → Run anyway*; on macOS right-click
+`Hands.app` → *Open* (or allow it under System Settings → Privacy &
+Security). Only do this for files downloaded from this repository's
+Releases page.
+
+The desktop app is a thin, locked-down Electron shell around the same
+`index.html` (renderer sandboxed, no Node.js in the page, no preload,
+new windows and navigation away from the app blocked; `http(s)` links
+open in your default browser). It still makes no network requests.
+
+日本語: Hands は**デスクトップアプリ（ソフトウェア）が正規の配布形態**です。
+Releases から OS 別のファイルを入手してください。ビルドは**未署名**のため、
+Windows の SmartScreen や macOS の Gatekeeper が初回起動時に警告・ブロックする
+ことがあります（Windows は「詳細情報 → 実行」、macOS は右クリック →「開く」）。
+
+### Running the page directly
+
+No install, no build, no account: `index.html` also still opens in a
+browser (Chrome / Edge recommended for the Gamepad API), or serve the
+folder with any static file server. Everything runs locally; the page
+makes no network requests at all.
 
 ## What you can do
 
@@ -110,6 +140,17 @@ node tests/run-tests.js
 
 # UI test in Electron (needs an Electron binary + Xvfb on Linux)
 xvfb-run -a <electron-binary> tests/ui-main.js --no-sandbox
+```
+
+Desktop shell (`desktop/main.js`; `electron` and `electron-builder` are
+pinned dev dependencies with a committed `package-lock.json` — the app
+itself stays dependency-free):
+
+```sh
+npm ci
+npm start        # run the desktop app from source
+npm run dist     # build for the current OS into dist/
+                 # (Windows: portable exe, macOS: zip, Linux: AppImage)
 ```
 
 CI runs the core tests plus checks that the app stays single-file and
