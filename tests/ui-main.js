@@ -190,6 +190,7 @@ app.whenReady().then(async () => {
     check('XR session starts on click', await run('typeof __xr.frame === "function" && document.getElementById("xrBtn").textContent === "VR を終える"'));
     await run('__xr.sources.push({ handedness: "right", gamepad: { mapping: "xr-standard", buttons: [0,1,2,3,4,5,6].map(function () { return { pressed: false, value: 0 }; }), axes: [0, 0, 0, 0] } }); __xr.step()');
     check('right Touch controller appears as a pad with Quest names', await run('document.getElementById("padList").textContent.indexOf("WebXR right") >= 0 && document.querySelector("#padList select").value === "quest3-r" && document.getElementById("padList").textContent.indexOf("Thumbstick Click") >= 0'));
+    check('XR pad shows only the controller\'s own buttons on first connect', await run('document.querySelector("#padList .btn-grid").children.length === 7'));
     await run('__xr.sources[0].gamepad.buttons[4].pressed = true; __xr.step()');
     check('XR button press fires the bound rule', await run('document.getElementById("log").textContent.indexOf("XR Jump") >= 0'));
     check('XR view flashes on fire', await run('__xr.step(), __xr.green > 0.5'));
