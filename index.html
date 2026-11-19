@@ -1031,12 +1031,12 @@
   }
 
   function feedPad(index, id, gp, now) {
-    if (!knownPads[index] || !knownPads[index].connected) { registerPad(index, id, gp.mapping); renderPads(); }
     var buttons = Array.prototype.slice.call(gp.buttons);
     lastSnapshot[index] = {
       buttons: buttons.map(function (b) { return { pressed: !!b.pressed, value: b.value }; }),
       axes: Array.prototype.slice.call(gp.axes)
     };
+    if (!knownPads[index] || !knownPads[index].connected) { registerPad(index, id, gp.mapping); renderPads(); }
     var prev = prevPadButtons[index] || [];
     for (var bi = 0; bi < buttons.length; bi++) {
       var down = !!buttons[bi].pressed;
