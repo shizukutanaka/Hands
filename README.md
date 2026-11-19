@@ -60,6 +60,13 @@ makes no network requests at all.
   buttons lighting up as you press them, including analog trigger values.
   Button-name presets are included for Quest 3 Touch (left/right) and
   standard gamepads, and you can switch the naming per device.
+- **Quest Touch controllers via WebXR** — XR controllers never appear in
+  the browser's regular gamepad list (the WebXR Gamepads Module forbids
+  it), so in a WebXR-capable browser (Quest Browser, or Chrome / Edge
+  with PC VR) an *Enter VR to read* button appears. While you are in VR
+  both Touch controllers feed the same detection engine as fixed pads
+  (left = pad 9, right = pad 10) and the view flashes green whenever a
+  binding fires; exit VR to read the log. Learn mode works the same way.
 - **Five trigger kinds**
   - *Press* — a plain button press.
   - *Chord* — several buttons together. The simultaneity window is

@@ -3,7 +3,7 @@
    Exercises: starter profile render, keyboard-test input through the real
    window event path (chord / double / long-press / sequence), the rule
    editor (picker + key capture), persistence across reload, language
-   switch, and captures a screenshot into docs/.
+   switch, WebXR controller input (with a fake navigator.xr), and captures a screenshot into docs/.
    Run:
      xvfb-run -a <electron-binary> tests/ui-main.js --no-sandbox
    Prints a JSON result line; exit code 0 on success. */
@@ -147,6 +147,58 @@ app.whenReady().then(async () => {
     await run('var l2 = document.getElementById("langSel"); l2.value = "ja"; l2.dispatchEvent(new Event("change", {bubbles:true}))');
     await sleep(50);
     check('language switches back to Japanese', await run('document.querySelector("[data-i18n=\\"devices\\"]").textContent === "デバイス"'));
+
+    /* --- WebXR: Quest Touch controllers are read from an immersive session's
+       input sources (they never appear in navigator.getGamepads()). A fake
+       navigator.xr is installed before the page's own scripts run. --- */
+    check('XR entry hidden without WebXR support', await run('document.getElementById("xrBox").style.display === "none"'));
+    const fakeXR = `(function () {
+      var X = window.__xr = { sources: [], frame: null, green: 0 };
+      var listeners = {};
+      var session = X.session = {
+        inputSources: X.sources, renderState: { baseLayer: null },
+        updateRenderState: function (s) { this.renderState.baseLayer = s.baseLayer; },
+        addEventListener: function (n, f) { listeners[n] = f; },
+        requestAnimationFrame: function (cb) { X.frame = cb; return 1; },
+        end: function () { if (listeners.end) listeners.end({}); return Promise.resolve(); }
+      };
+      X.step = function () { var cb = X.frame; X.frame = null; if (cb) cb(performance.now(), { session: session }); };
+      window.XRWebGLLayer = function () { this.framebuffer = null; };
+      var getContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind) {
+        if (kind !== 'webgl') return getContext.apply(this, arguments);
+        return { FRAMEBUFFER: 36160, COLOR_BUFFER_BIT: 16384, bindFramebuffer: function () {}, clear: function () {},
+                 clearColor: function (r, g) { X.green = g; } };
+      };
+      Object.defineProperty(navigator, 'xr', { configurable: true, value: {
+        isSessionSupported: function (mode) { return Promise.resolve(mode === 'immersive-vr'); },
+        requestSession: function () { return Promise.resolve(session); }
+      } });
+    })();`;
+    win.webContents.debugger.attach('1.3');
+    await win.webContents.debugger.sendCommand('Page.enable');
+    await win.webContents.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', { source: fakeXR });
+    await run('(function () { var d = JSON.parse(localStorage.getItem("hands.studio.v1")); var p = d.profiles.filter(function (x) { return x.id === d.activeId; })[0];' +
+      ' p.rules.push({ id: "rule-xr", name: "XR Jump", enabled: true, trigger: { kind: "press", buttons: ["g9b4"] }, action: { kind: "keys", keys: ["Space"] } });' +
+      ' p.rules.push({ id: "rule-xr-hold", name: "XR Hold", enabled: true, trigger: { kind: "longpress", buttons: ["g9b5"], holdMs: 300 }, action: { kind: "keys", keys: ["Enter"] } });' +
+      ' localStorage.setItem("hands.studio.v1", JSON.stringify(d)); })()');
+    await win.reload();
+    await sleep(400);
+    check('XR entry shown when immersive-vr is supported', await run('document.getElementById("xrBox").style.display === "" && document.getElementById("xrBtn").textContent.indexOf("VR") >= 0'));
+    await run('document.getElementById("xrBtn").click()');
+    await sleep(50);
+    check('XR session starts on click', await run('typeof __xr.frame === "function" && document.getElementById("xrBtn").textContent === "VR を終える"'));
+    await run('__xr.sources.push({ handedness: "right", gamepad: { mapping: "xr-standard", buttons: [0,1,2,3,4,5,6].map(function () { return { pressed: false, value: 0 }; }), axes: [0, 0, 0, 0] } }); __xr.step()');
+    check('right Touch controller appears as a pad with Quest names', await run('document.getElementById("padList").textContent.indexOf("WebXR right") >= 0 && document.querySelector("#padList select").value === "quest3-r" && document.getElementById("padList").textContent.indexOf("Thumbstick Click") >= 0'));
+    await run('__xr.sources[0].gamepad.buttons[4].pressed = true; __xr.step()');
+    check('XR button press fires the bound rule', await run('document.getElementById("log").textContent.indexOf("XR Jump") >= 0'));
+    check('XR view flashes on fire', await run('__xr.step(), __xr.green > 0.5'));
+    await run('__xr.sources[0].gamepad.buttons[5].pressed = true; __xr.step()');
+    await run('__xr.session.end()');
+    await sleep(500);
+    check('ending VR releases the pad and resets the button', await run('document.getElementById("padList").textContent.indexOf("未接続") >= 0 && document.getElementById("xrBtn").textContent === "VR に入って読む（WebXR）"'));
+    check('a button held when VR ends is released (long press does not fire later)', await run('document.getElementById("log").textContent.indexOf("XR Hold") < 0'));
+    win.webContents.debugger.detach();
 
     check('no page console errors', results.consoleErrors.length === 0);
   } catch (err) {

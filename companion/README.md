@@ -85,6 +85,9 @@ connection order while XInput's is the player slot (identical when one
 controller is connected), and the studio's on-screen keyboard test
 buttons (`k0`–`k7`) are a browser-only fallback — the companion does not
 feed them, so the starter profile is for in-browser practice only.
+Likewise the studio's WebXR pads (`g8`/`g9`, Touch controllers read
+inside a VR session) are studio-only: rules bound to them load but never
+fire here.
 `sample-profile.json` in this folder is a standard-pad profile covering
 all five trigger kinds, made for trying the companion.
 
