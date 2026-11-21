@@ -19,6 +19,7 @@
     <Compile Include="..\..\src\Engine.cs" />
     <Compile Include="..\..\src\KeyMap.cs" />
     <Compile Include="..\..\src\Planner.cs" />
+    <Compile Include="..\..\src\TargetFilter.cs" />
     <Compile Include="Tests.cs" />
   </ItemGroup>
 </Project>

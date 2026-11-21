@@ -18,10 +18,14 @@ Deviations and limits of the minimal version, recorded honestly:
   cannot be read through `XInputGetState` and is never reported.
 - The studio's keyboard test buttons (`k0`–`k7`) are a browser-only
   fallback and are not fed by the companion.
-- No target-app filtering yet: keys go to the focused window. A refused
-  send *is* surfaced, per the pitfall below — the log names the
-  foreground window's title when `SendInput` accepts fewer events than
-  requested.
+- Target-app filtering is implemented: a profile may carry an optional
+  `target` (`titleContains` and/or `processName`; both together mean
+  AND). The companion checks the foreground window before each send,
+  skips the send when it does not match, and logs the reason — a skipped
+  send is surfaced, never silently dropped. With no `target`, keys go
+  to the focused window exactly as before. A refused send *is* also
+  surfaced, per the pitfall below — the log names the foreground
+  window's title when `SendInput` accepts fewer events than requested.
 - The first-run injection test exists as an explicit
   `--selftest-send` flag (one harmless Shift tap) rather than an
   automatic first-run flow.
@@ -79,9 +83,13 @@ bindings. A native shell only has to provide three things:
 - **Anti-cheat / protected games** may block synthetic input entirely.
   The shell must surface "injection refused" per target instead of
   silently dropping keys — failing loudly is a product rule.
-- **Focus**: injected keys go to the focused window. A "target app"
-  concept (only fire when a chosen app is focused) belongs in the shell,
-  not in profiles.
+- **Focus**: injected keys go to the focused window. The "target app"
+  concept (only send when a chosen app is focused) is enforced in the
+  shell, as planned here; the profile merely *declares* the target (the
+  optional `target` field the studio authors), and the shell performs
+  the foreground check and owns the skip-and-log decision. The check
+  reads only the foreground window's title and owning process name —
+  the same information the sender already logged for refused sends.
 - **Permissions**: macOS Accessibility and Linux uinput group membership
   are install-time hurdles; the shell's first-run flow must test
   injection with a harmless key and show the result.

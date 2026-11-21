@@ -44,11 +44,18 @@ namespace HandsCompanion
         public RuleAction Action;
     }
 
+    public sealed class ProfileTarget
+    {
+        public string TitleContains;      /* null when not specified */
+        public string ProcessName;        /* null when not specified; bare name, no ".exe" */
+    }
+
     public sealed class Profile
     {
         public string Id;
         public string Name;
         public List<Rule> Rules;
+        public ProfileTarget Target;      /* null = no filtering (historical behaviour) */
     }
 
     public sealed class ProfileResult
@@ -254,6 +261,51 @@ namespace HandsCompanion
             };
         }
 
+        /* Port of HC.normalizeTarget in index.html — identical rules:
+           absent/null means no filtering; when present, at least one of
+           titleContains / processName must be given (both = AND).
+           titleContains is trimmed, 1..256 chars. processName is a bare
+           process name: trimmed, a trailing ".exe" is stripped, 1..128
+           chars, and path separators / wildcards are rejected so the
+           field can only narrow the destination. */
+        public static ProfileTarget NormalizeTarget(object rawObj, List<string> errors)
+        {
+            if (rawObj == null) return null;
+            var raw = AsDict(rawObj);
+            if (raw == null) { errors.Add("target: must be an object"); return null; }
+            int before = errors.Count;
+            var target = new ProfileTarget();
+            object titleRaw = Get(raw, "titleContains");
+            if (titleRaw != null)
+            {
+                string title = titleRaw as string;
+                if (title == null || title.Trim().Length == 0 || title.Trim().Length > 256)
+                    errors.Add("target.titleContains: must be a string of 1..256 characters");
+                else target.TitleContains = title.Trim();
+            }
+            object procRaw = Get(raw, "processName");
+            if (procRaw != null)
+            {
+                string proc = procRaw as string;
+                if (proc == null)
+                {
+                    errors.Add("target.processName: must be a process name (no path, no wildcards), 1..128 characters");
+                }
+                else
+                {
+                    string pn = proc.Trim();
+                    if (pn.Length >= 4 && pn.Substring(pn.Length - 4).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+                        pn = pn.Substring(0, pn.Length - 4);
+                    if (pn.Length == 0 || pn.Length > 128 || pn.IndexOfAny(new char[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|' }) >= 0)
+                        errors.Add("target.processName: must be a process name (no path, no wildcards), 1..128 characters");
+                    else target.ProcessName = pn;
+                }
+            }
+            if (errors.Count == before && target.TitleContains == null && target.ProcessName == null)
+                errors.Add("target: specify at least one of titleContains or processName");
+            return errors.Count > before ? null : target;
+        }
+
         public static ProfileResult NormalizeProfile(object rawObj)
         {
             var errors = new List<string>();
@@ -274,13 +326,15 @@ namespace HandsCompanion
                 else errors.Add("rules[" + i + "]: " + string.Join("; ", rErrors.ToArray()));
             }
             object nameRaw = Get(raw, "name");
+            var target = NormalizeTarget(Get(raw, "target"), errors);
             return new ProfileResult
             {
                 Profile = new Profile
                 {
                     Id = IsStr(Get(raw, "id")) ? (string)Get(raw, "id") : GenId("profile"),
                     Name = (nameRaw is string && ((string)nameRaw).Length > 0) ? (string)nameRaw : "Profile",
-                    Rules = rules
+                    Rules = rules,
+                    Target = target
                 },
                 Errors = errors
             };

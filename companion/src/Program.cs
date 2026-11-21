@@ -137,6 +137,8 @@ namespace HandsCompanion
             }
             Log.Info("input: XInput via " + XInput.DllName + " (slots g0..g3, standard mapping)");
             Log.Info("output: SendInput (scan codes) to the focused window" + (dryRun ? " — DRY RUN, nothing will be sent" : ""));
+            if (profile.Target != null)
+                Log.Info("target filter: only send when " + TargetFilter.Describe(profile.Target) + "; other sends are skipped and logged");
             Log.Info("stop: Ctrl+C, close this window, or hold Ctrl+Alt+F12");
 
             Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
@@ -145,7 +147,7 @@ namespace HandsCompanion
                 stopRequested = true;
             };
 
-            PollLoop(engine, dryRun);
+            PollLoop(engine, dryRun, profile.Target);
             Log.Info("stopped");
             return 0;
         }
@@ -195,7 +197,7 @@ namespace HandsCompanion
             return rules as List<object> ?? new List<object>();
         }
 
-        private static void PollLoop(Engine engine, bool dryRun)
+        private static void PollLoop(Engine engine, bool dryRun, ProfileTarget target)
         {
             var clock = Stopwatch.StartNew();
             var prev = new bool[4][];
@@ -227,7 +229,7 @@ namespace HandsCompanion
                             if (prev[slot][i])
                             {
                                 prev[slot][i] = false;
-                                HandleFired(engine.HandleEvent("g" + slot + "b" + i, false, now), dryRun);
+                                HandleFired(engine.HandleEvent("g" + slot + "b" + i, false, now), dryRun, target);
                             }
                         }
                         continue;
@@ -238,11 +240,11 @@ namespace HandsCompanion
                         if (cur[i] != prev[slot][i])
                         {
                             prev[slot][i] = cur[i];
-                            HandleFired(engine.HandleEvent("g" + slot + "b" + i, cur[i], now), dryRun);
+                            HandleFired(engine.HandleEvent("g" + slot + "b" + i, cur[i], now), dryRun, target);
                         }
                     }
                 }
-                HandleFired(engine.AdvanceTo(now), dryRun);
+                HandleFired(engine.AdvanceTo(now), dryRun, target);
 
                 if ((GetAsyncKeyState(VkControl) & 0x8000) != 0
                     && (GetAsyncKeyState(VkMenu) & 0x8000) != 0
@@ -258,13 +260,23 @@ namespace HandsCompanion
             }
         }
 
-        private static void HandleFired(List<FiredEntry> fired, bool dryRun)
+        private static void HandleFired(List<FiredEntry> fired, bool dryRun, ProfileTarget target)
         {
             foreach (var f in fired)
             {
                 var ops = Planner.Plan(f.Action);
                 Log.Info("FIRED [" + f.Name + "] " + f.TriggerKind + " -> " + ProfileIO.DescribeAction(f.Action));
                 if (ops.Count == 0) continue;
+                if (target != null)
+                {
+                    string fgTitle = WindowsSender.ForegroundTitle();
+                    string fgProcess = WindowsSender.ForegroundProcessName();
+                    if (!TargetFilter.Matches(target, fgTitle, fgProcess))
+                    {
+                        Log.Info("  target filter: skipped — " + TargetFilter.MismatchReason(target, fgTitle, fgProcess));
+                        continue;
+                    }
+                }
                 if (dryRun)
                 {
                     Log.Info("  dry-run: would send " + DescribeOps(ops));

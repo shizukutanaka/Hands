@@ -63,6 +63,38 @@ Startup is strict on purpose: a profile with an invalid rule, or one
 that uses a key this companion cannot send, is rejected with the reasons
 listed — never partially applied.
 
+## Target filter (optional, per profile)
+
+A profile can say "only send while this app is in front". Add a
+`target` object to the profile — in the studio this is the two fields
+under the profile bar (*Target filter (companion)*), and in JSON it
+looks like this:
+
+```json
+{ "app": "hands", "version": 1,
+  "profile": { "name": "For Notepad",
+               "target": { "titleContains": "Notepad", "processName": "notepad" },
+               "rules": [ "..." ] } }
+```
+
+- `titleContains` — the foreground window's title must contain this
+  text (case-insensitive substring).
+- `processName` — the foreground window's process name must equal this
+  bare process name (case-insensitive; a trailing `.exe` is ignored, so
+  `notepad` and `notepad.exe` are the same). Paths and wildcards are
+  rejected at load time.
+- Both fields together mean **AND**; either one alone is enough to set
+  a filter. No `target` at all (every older profile) means no filtering:
+  keys go to whatever window has focus, as before.
+
+The check happens before every send. When the foreground window does
+not match, the companion **does not send** and logs the reason, naming
+the foreground window and the target — for example
+`target filter: skipped — foreground window is "Calculator" (process calc.exe), target requires …; not sending`.
+Filtering only ever narrows where keys go: it reads the foreground
+window's title and owning process name (query-only) and never opens,
+inspects or alters another process.
+
 ## How your controller maps
 
 Input comes from **XInput** (slots become `g0`–`g3`), translated to the
@@ -114,8 +146,9 @@ or a long press fire on its own later.
   all logic is unit-tested (below), but the XInput polling and SendInput
   paths have only been compile-checked, not run against real hardware.
   The check procedure is in the next section.
-- No target-app filtering yet: keys go to whatever window has focus.
-  Keep the profile's effects in mind when you alt-tab.
+- Target-app filtering is available per profile (see *Target filter*
+  above). Without a `target`, keys go to whatever window has focus —
+  keep the profile's effects in mind when you alt-tab.
 
 ## Check procedure (real machine)
 

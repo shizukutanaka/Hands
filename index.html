@@ -185,6 +185,12 @@
           <button id="shareBtn" data-i18n="shareLink">リンクで共有</button>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none">
         </div>
+        <div class="profile-bar">
+          <label data-i18n="targetLabel">送信先の絞り込み（コンパニオン用）</label>
+          <input type="text" id="targetTitle" aria-label="target window title" data-i18n-placeholder="targetTitlePh" placeholder="ウィンドウ名の一部（例: メモ帳）">
+          <input type="text" id="targetProcess" aria-label="target process name" data-i18n-placeholder="targetProcessPh" placeholder="プロセス名（例: notepad）">
+          <span class="hint" data-i18n="targetHint">両方空なら全ウィンドウ対象。指定すると、一致した時だけコンパニオンがキーを送ります。</span>
+        </div>
         <div id="ruleList"></div>
         <button id="addRuleBtn" class="primary" data-i18n="addRule">＋ ルールを追加</button>
         <div class="err" id="profileErr"></div>
@@ -429,6 +435,43 @@
     };
   };
 
+  /* Optional companion target filter: { titleContains?, processName? }.
+     Absent means "no filtering" (the historical behaviour: the companion
+     sends to whatever window has focus). When present, at least one field
+     must be given; both fields together mean AND. This is a send-side
+     filter for the native companion only — the studio itself never sends
+     keys — and it is validated identically here and in the companion
+     (Profile.cs), so a profile means the same thing on both sides.
+     processName is a bare process name such as "notepad" (a trailing
+     ".exe" is stripped); paths and wildcards are rejected so the field
+     can only ever narrow the destination, never describe a location. */
+  HC.normalizeTarget = function (raw, errors) {
+    errors = errors || [];
+    if (raw === undefined || raw === null) return null;
+    if (typeof raw !== 'object' || Array.isArray(raw)) { errors.push('target: must be an object'); return null; }
+    var before = errors.length;
+    var target = {};
+    if (raw.titleContains !== undefined && raw.titleContains !== null) {
+      if (typeof raw.titleContains !== 'string' || !raw.titleContains.trim() || raw.titleContains.trim().length > 256) {
+        errors.push('target.titleContains: must be a string of 1..256 characters');
+      } else target.titleContains = raw.titleContains.trim();
+    }
+    if (raw.processName !== undefined && raw.processName !== null) {
+      if (typeof raw.processName !== 'string') {
+        errors.push('target.processName: must be a process name (no path, no wildcards), 1..128 characters');
+      } else {
+        var pn = raw.processName.trim().replace(/\.exe$/i, '');
+        if (!pn || pn.length > 128 || /[\\\/:*?"<>|]/.test(pn)) {
+          errors.push('target.processName: must be a process name (no path, no wildcards), 1..128 characters');
+        } else target.processName = pn;
+      }
+    }
+    if (errors.length === before && !target.titleContains && !target.processName) {
+      errors.push('target: specify at least one of titleContains or processName');
+    }
+    return errors.length > before ? null : target;
+  };
+
   HC.normalizeProfile = function (raw) {
     var errors = [];
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -442,14 +485,14 @@
       if (r) rules.push(r);
       else errors.push('rules[' + i + ']: ' + rErrors.join('; '));
     }
-    return {
-      profile: {
-        id: isStr(raw.id) ? raw.id : genId('profile'),
-        name: typeof raw.name === 'string' && raw.name ? raw.name : 'Profile',
-        rules: rules
-      },
-      errors: errors
+    var profile = {
+      id: isStr(raw.id) ? raw.id : genId('profile'),
+      name: typeof raw.name === 'string' && raw.name ? raw.name : 'Profile',
+      rules: rules
     };
+    var target = HC.normalizeTarget(raw.target, errors);
+    if (target) profile.target = target;
+    return { profile: profile, errors: errors };
   };
 
   HC.exportProfile = function (profile) {
@@ -803,6 +846,8 @@
       rules: '割り当てルール', rulesSub: 'プロファイルはこの端末の中だけに保存されます',
       newProfile: '新規', dupProfile: '複製', delProfile: '削除', export: '書き出し (JSON)', import: '読み込み',
       shareLink: 'リンクで共有',
+      targetLabel: '送信先の絞り込み（コンパニオン用）', targetTitlePh: 'ウィンドウ名の一部（例: メモ帳）', targetProcessPh: 'プロセス名（例: notepad）',
+      targetHint: '両方空なら全ウィンドウ対象。指定すると、一致した時だけコンパニオンがキーを送ります。',
       addRule: '＋ ルールを追加', editorTitle: 'ルールを編集', ruleName: '名前',
       triggerKind: 'きっかけ', kindPress: '単押し', kindChord: '同時押し', kindLong: '長押し',
       kindDouble: '二度押し', kindSeq: '順番押し', learn: '実入力で覚える', learning: '入力待ち…（やめる）',
@@ -843,6 +888,8 @@
       rules: 'Binding rules', rulesSub: 'Profiles are stored only on this device',
       newProfile: 'New', dupProfile: 'Duplicate', delProfile: 'Delete', export: 'Export (JSON)', import: 'Import',
       shareLink: 'Share link',
+      targetLabel: 'Target filter (companion)', targetTitlePh: 'Part of window title (e.g. Notepad)', targetProcessPh: 'Process name (e.g. notepad)',
+      targetHint: 'Leave both empty to allow any window. When set, the companion sends only while the foreground window matches.',
       addRule: '+ Add rule', editorTitle: 'Edit rule', ruleName: 'Name',
       triggerKind: 'Trigger', kindPress: 'Press', kindChord: 'Chord (simultaneous)', kindLong: 'Long press',
       kindDouble: 'Double press', kindSeq: 'Sequence', learn: 'Learn from real input', learning: 'Listening… (tap to stop)',
@@ -1326,6 +1373,8 @@
     });
     var active = activeProfile();
     $('profileName').value = active ? active.name : '';
+    $('targetTitle').value = active && active.target ? (active.target.titleContains || '') : '';
+    $('targetProcess').value = active && active.target ? (active.target.processName || '') : '';
     var list = $('ruleList');
     list.innerHTML = '';
     if (!active) return;
@@ -1683,6 +1732,9 @@
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       el.textContent = t(el.getAttribute('data-i18n'));
     });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+    });
     document.documentElement.lang = lang;
     $('langSel').value = lang;
     updateXRButton();
@@ -1710,6 +1762,31 @@
       var p = activeProfile();
       if (p && $('profileName').value.trim()) { p.name = $('profileName').value.trim(); saveStore(); renderRules(); }
     });
+    function applyTargetFromInputs() {
+      var p = activeProfile();
+      if (!p) return;
+      var title = $('targetTitle').value.trim();
+      var proc = $('targetProcess').value.trim();
+      var cand = JSON.parse(JSON.stringify(p));
+      if (!title && !proc) delete cand.target;
+      else {
+        cand.target = {};
+        if (title) cand.target.titleContains = title;
+        if (proc) cand.target.processName = proc;
+      }
+      var n = HC.normalizeProfile(cand);
+      var terr = n.errors.filter(function (e) { return e.indexOf('target') === 0; });
+      if (terr.length) {
+        $('profileErr').textContent = terr.join(' / ');
+        renderRules();
+        return;
+      }
+      if (n.profile.target) p.target = n.profile.target; else delete p.target;
+      $('profileErr').textContent = '';
+      saveStore(); renderRules();
+    }
+    $('targetTitle').addEventListener('change', applyTargetFromInputs);
+    $('targetProcess').addEventListener('change', applyTargetFromInputs);
     $('newProfileBtn').addEventListener('click', function () {
       var p = { id: uid('profile'), name: t('newProfileName'), rules: [] };
       store.profiles.push(p); store.activeId = p.id;

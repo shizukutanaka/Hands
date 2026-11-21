@@ -241,6 +241,44 @@ eq(HC.TRIGGER_KINDS, ['press', 'chord', 'longpress', 'double', 'sequence'], 'tri
   eq(bare.profile.rules.length, 1, 'json: bare profile object accepted');
 }
 
+/* ---- profile target filter (companion send-side filter) ---- */
+{
+  const noTarget = HC.normalizeProfile({ name: 'Old', rules: [rule('press', ['A'])] });
+  eq(noTarget.errors, [], 'target: profile without target has no errors (back compat)');
+  eq(noTarget.profile.target, undefined, 'target: absent target stays absent');
+
+  const withTarget = HC.normalizeProfile({
+    name: 'T', rules: [rule('press', ['A'])],
+    target: { titleContains: '  Notepad  ', processName: 'notepad.exe' }
+  });
+  eq(withTarget.errors, [], 'target: valid target has no errors');
+  eq(withTarget.profile.target, { titleContains: 'Notepad', processName: 'notepad' },
+    'target: values trimmed, .exe stripped');
+
+  const roundTrip = HC.importProfile(HC.exportProfile(withTarget.profile));
+  eq(roundTrip.errors, [], 'target: export/import round trip has no errors');
+  eq(roundTrip.profile.target, { titleContains: 'Notepad', processName: 'notepad' },
+    'target: export/import round trip preserves target');
+  const shareBack = HC.decodeShareLink(HC.encodeShareLink(withTarget.profile).fragment);
+  eq(shareBack.profile.target, { titleContains: 'Notepad', processName: 'notepad' },
+    'target: share link round trip preserves target');
+
+  const empty = HC.normalizeProfile({ name: 'E', rules: [], target: {} });
+  ok(empty.errors.length >= 1 && empty.profile.target === undefined, 'target: empty object rejected');
+  const badPath = HC.normalizeProfile({ name: 'P', rules: [], target: { processName: 'C:\\apps\\notepad' } });
+  ok(badPath.errors.length >= 1 && badPath.profile.target === undefined, 'target: process path rejected');
+  const badWild = HC.normalizeProfile({ name: 'W', rules: [], target: { processName: 'note*' } });
+  ok(badWild.errors.length >= 1, 'target: wildcard process rejected');
+  const badTitle = HC.normalizeProfile({ name: 'B', rules: [], target: { titleContains: '' } });
+  ok(badTitle.errors.length >= 1, 'target: empty titleContains rejected');
+  const notObj = HC.normalizeProfile({ name: 'N', rules: [], target: 'notepad' });
+  ok(notObj.errors.length >= 1, 'target: non-object target rejected');
+  const titleOnly = HC.normalizeProfile({ name: 'TO', rules: [], target: { titleContains: 'Game' } });
+  eq(titleOnly.profile.target, { titleContains: 'Game' }, 'target: title-only target accepted');
+  const procOnly = HC.normalizeProfile({ name: 'PO', rules: [], target: { processName: 'GAME.EXE' } });
+  eq(procOnly.profile.target, { processName: 'GAME' }, 'target: process-only target accepted, .EXE stripped');
+}
+
 /* ---- share links ---- */
 {
   const src = {
