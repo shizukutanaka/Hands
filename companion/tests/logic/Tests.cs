@@ -58,6 +58,7 @@ internal static class Tests
         TestVectors(args[0]);
         TestSampleProfile(args[1]);
         TestLoaderRefusals();
+        TestTargetFilter();
         Console.WriteLine("companion logic tests: " + passed + " passed, " + failed + " failed");
         return failed == 0 ? 0 : 1;
     }
@@ -296,6 +297,70 @@ internal static class Tests
             EqStr(OpsCanon(Planner.Plan(fired[4].Action)),
                 "w50 dn 0x1D, dn 0x1F, up 0x1F, up 0x1D, w150 dn 0x1C, up 0x1C", "sample: sequence -> save macro ops");
         }
+    }
+
+    /* ---------------- target filter (profile target + send decision) ---------------- */
+
+    private static void TestTargetFilter()
+    {
+        /* normalization: absent = no filter (back compat with old profiles) */
+        var old = ProfileIO.ImportProfile("{\"app\":\"hands\",\"version\":1,\"profile\":{\"name\":\"Old\",\"rules\":[]}}");
+        Ok(old.Profile != null && old.Profile.Target == null && old.Errors.Count == 0,
+            "target: profile without target loads with no filter");
+        var bareOld = ProfileIO.ImportProfile("{\"name\":\"Bare\",\"rules\":[]}");
+        Ok(bareOld.Profile != null && bareOld.Profile.Target == null, "target: bare old profile has no filter");
+
+        /* normalization: values are cleaned like the studio cleans them */
+        var withT = ProfileIO.ImportProfile(
+            "{\"app\":\"hands\",\"version\":1,\"profile\":{\"name\":\"T\",\"rules\":[]," +
+            "\"target\":{\"titleContains\":\"  Notepad  \",\"processName\":\"notepad.exe\"}}}");
+        Ok(withT.Profile != null && withT.Errors.Count == 0, "target: valid target loads");
+        Ok(withT.Profile.Target != null && withT.Profile.Target.TitleContains == "Notepad",
+            "target: titleContains trimmed");
+        Ok(withT.Profile.Target != null && withT.Profile.Target.ProcessName == "notepad",
+            "target: processName .exe stripped");
+        var titleOnly = ProfileIO.ImportProfile("{\"profile\":{\"rules\":[],\"target\":{\"titleContains\":\"Game\"}},\"app\":\"hands\",\"version\":1}");
+        Ok(titleOnly.Profile.Target != null && titleOnly.Profile.Target.ProcessName == null, "target: title-only accepted");
+
+        /* normalization: invalid targets are load errors (companion refuses to start) */
+        Ok(ProfileIO.ImportProfile("{\"app\":\"hands\",\"version\":1,\"profile\":{\"rules\":[],\"target\":{}}}").Errors.Count >= 1,
+            "target: empty target object rejected");
+        Ok(ProfileIO.ImportProfile("{\"app\":\"hands\",\"version\":1,\"profile\":{\"rules\":[],\"target\":{\"titleContains\":\"\"}}}").Errors.Count >= 1,
+            "target: empty titleContains rejected");
+        Ok(ProfileIO.ImportProfile("{\"app\":\"hands\",\"version\":1,\"profile\":{\"rules\":[],\"target\":{\"processName\":\"C:\\\\apps\\\\notepad\"}}}").Errors.Count >= 1,
+            "target: process path rejected");
+        Ok(ProfileIO.ImportProfile("{\"app\":\"hands\",\"version\":1,\"profile\":{\"rules\":[],\"target\":{\"processName\":\"note*\"}}}").Errors.Count >= 1,
+            "target: wildcard process rejected");
+        Ok(ProfileIO.ImportProfile("{\"app\":\"hands\",\"version\":1,\"profile\":{\"rules\":[],\"target\":\"notepad\"}}").Errors.Count >= 1,
+            "target: non-object target rejected");
+
+        /* decision: the three required cases */
+        var target = new ProfileTarget { TitleContains = "Notepad", ProcessName = "notepad" };
+        Ok(TargetFilter.Matches(target, "Untitled - Notepad", "notepad.exe"),
+            "target decision: match (title substring + process, .exe on foreground side) -> send");
+        Ok(!TargetFilter.Matches(target, "Untitled - Notepad", "code.exe"),
+            "target decision: title matches but process differs -> do not send");
+        Ok(!TargetFilter.Matches(target, "Calculator", "notepad.exe"),
+            "target decision: process matches but title differs -> do not send (AND)");
+        Ok(TargetFilter.Matches(null, "Anything at all", "whatever.exe"),
+            "target decision: no target specified -> send (historical behaviour)");
+        Ok(TargetFilter.Matches(null, "", ""), "target decision: no target, no foreground info -> send");
+
+        /* decision: single-field and case handling */
+        Ok(TargetFilter.Matches(new ProfileTarget { TitleContains = "note" }, "My NOTEbook", "anything.exe"),
+            "target decision: title match is case-insensitive substring");
+        Ok(TargetFilter.Matches(new ProfileTarget { ProcessName = "NotePad" }, "any title", "NOTEPAD.EXE"),
+            "target decision: process match is case-insensitive and .exe-insensitive");
+        Ok(!TargetFilter.Matches(new ProfileTarget { TitleContains = "Notepad" }, "", "notepad.exe"),
+            "target decision: empty foreground title cannot satisfy a title filter");
+        Ok(!TargetFilter.Matches(new ProfileTarget { ProcessName = "notepad" }, "Notepad", ""),
+            "target decision: unknown foreground process cannot satisfy a process filter");
+
+        /* a skipped send carries a reason that names both sides */
+        string reason = TargetFilter.MismatchReason(target, "Calculator", "calc.exe");
+        Ok(reason.IndexOf("Calculator") >= 0 && reason.IndexOf("Notepad") >= 0 && reason.IndexOf("not sending") >= 0,
+            "target decision: mismatch reason names the foreground window and the target");
+        Ok(TargetFilter.Describe(target).IndexOf("Notepad") >= 0, "target: describe names the target");
     }
 
     /* ---------------- loader refusals (fail loudly, never partially) ---------------- */

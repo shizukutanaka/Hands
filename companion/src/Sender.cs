@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -74,6 +75,20 @@ namespace HandsCompanion
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
 
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr OpenProcess(uint access, bool inheritHandle, uint processId);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder text, ref uint length);
+
+        private const uint ProcessQueryLimitedInformation = 0x1000;
+
         public static string ForegroundTitle()
         {
             try
@@ -87,6 +102,37 @@ namespace HandsCompanion
             catch (Exception)
             {
                 return "(title unavailable)";
+            }
+        }
+
+        /* File name (e.g. "notepad.exe") of the process that owns the
+           foreground window, or "" when it cannot be determined. Used
+           only for the profile target filter's processName check: it
+           reads the foreground window's owning process image name with
+           query-only access and never opens, inspects or alters the
+           target process itself. */
+        public static string ForegroundProcessName()
+        {
+            try
+            {
+                IntPtr h = GetForegroundWindow();
+                if (h == IntPtr.Zero) return "";
+                uint pid;
+                if (GetWindowThreadProcessId(h, out pid) == 0 || pid == 0) return "";
+                IntPtr proc = OpenProcess(ProcessQueryLimitedInformation, false, pid);
+                if (proc == IntPtr.Zero) return "";
+                try
+                {
+                    var sb = new StringBuilder(1024);
+                    uint len = (uint)sb.Capacity;
+                    if (!QueryFullProcessImageName(proc, 0, sb, ref len)) return "";
+                    return Path.GetFileName(sb.ToString());
+                }
+                finally { CloseHandle(proc); }
+            }
+            catch (Exception)
+            {
+                return "";
             }
         }
 
